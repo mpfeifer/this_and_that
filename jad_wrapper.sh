@@ -17,6 +17,8 @@ do
         BASE=$(basename $srcfile)
         pushd .
         cd $DIR
+        # jad - the java decompiler might be found here:
+        # http://www.varaneckas.com/jad/
         jad -s java $BASE
         popd
     done
