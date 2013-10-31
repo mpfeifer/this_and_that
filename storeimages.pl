@@ -7,7 +7,7 @@ use strict;
 
 my $counter=0;
 my $target="/cygdrive/h/temp/";
-my @source = ("/cygdrive/h/Bilder");
+my @source = ();
 my $ext = "xyz";
 
 # TODO
@@ -20,8 +20,10 @@ my $ext = "xyz";
 GetOptions("target=s" => \$target,
            "source=s" => \@source );
 
+print "Copying files from @source to $target\n";
+
 # initialize counter variable to maximum value found plus one
-sub findCounter {
+ sub findCounter {
     if (m/^(0*)([1-9][0-9]*)\./) {
         if ($2 > $counter) {
             $counter=$2;
@@ -30,22 +32,21 @@ sub findCounter {
 }
 find(\&findCounter, ($target));
 $counter=$counter+1;
+print "counter initialized to $counter\n";
 
 # This routine defines how to copy files from source to target
 sub copyImages {
-
     $ext = "xyz";
-
-    if ( ! -d $File::Find::name) {
-        if ( /.*(JPG|jpg|jpeg)$/) {
+    if ( -f $File::Find::name) {
+        if ( m/.*(JPG|jpg|jpeg)$/) {
             $ext = "jpg";
-        } elsif ( /.*(png|PNG)$/) {
+        } elsif ( m/.*(png|PNG)$/) {
             $ext = "png";
         }
     }
-
-    if ( ! $ext =~ /xyz/) {
+     if ( $ext !~ /xyz/ )  {
         my $filename = sprintf("%08d.%s", $counter, $ext);
+        print $File::Find::name . " -> " . $filename . "\n";
         copy($File::Find::name, $target . $filename );
         $counter = $counter + 1;
     }
