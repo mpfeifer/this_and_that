@@ -12,11 +12,17 @@
 ;; ]
 
 ;; [ custom set variables
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(helm-candidate-number-limit 75)
+ '(helm-ff-file-name-history-use-recentf t)
+ '(helm-move-to-line-cycle-in-source t)
+ '(helm-quick-update t)
+ '(helm-scroll-amount 1)
  '(package-archives (quote (("melpa" . "http://melpa.org/packages/"))))
  '(scroll-conservatively 65000)
  '(tool-bar-mode nil)
@@ -29,6 +35,7 @@
  ;; If there is more than one, they won't work right.
  '(calendar-today ((t (:underline "red"))))
  '(speedbar-highlight-face ((t (:background "burlywood")))))
+
 ;; ]
 
 ;; [ load-path
@@ -83,7 +90,7 @@
 
 (mp/install-package 'auto-compile)
 (use-package auto-compile
-  :config
+  :init
   (setq auto-compile-display-buffer nil)
   (setq auto-compile-mode-line-counter t)
   (auto-compile-on-save-mode)
@@ -122,13 +129,6 @@
 
 ;; [ ibuffer
 
-(require 'ibuffer)
-
-(global-set-key (kbd "C-x C-b") 'ibuffer)
-
-;; Do not show empty filter groups.
-(setq ibuffer-show-empty-filter-groups nil)
-
 (defun ibuffer-previous-line ()
   "Move point to last buffer when going before first buffer."
   (interactive)
@@ -148,17 +148,21 @@
     )
   )
 
-(add-hook 'ibuffer-mode-hook
-	  '(lambda ()
-	     (ibuffer-auto-mode 1)
-	     (ibuffer-switch-to-saved-filter-groups "standard")
-	     (define-key ibuffer-mode-map (kbd "p") 'ibuffer-previous-line)
-	     (define-key ibuffer-mode-map (kbd "n") 'ibuffer-next-line)  
-	     )
-	  )
+(use-package ibuffer
+  :bind ("C-x C-b" . ibuffer)
+  :config
+  (progn
+    (setq ibuffer-show-empty-filter-groups nil)
+    (add-hook 'ibuffer-mode-hook
+	      '(lambda ()
+		 (ibuffer-auto-mode 1)
+		 (ibuffer-switch-to-saved-filter-groups "standard")
+		 (define-key ibuffer-mode-map (kbd "p") 'ibuffer-previous-line)
+		 (define-key ibuffer-mode-map (kbd "n") 'ibuffer-next-line)))))
 ;; ]
 
 ;; [ emacs lisp mode
+
 (defun mp/dotemacs-mode-hook ()
   (local-set-key (kbd "C-S-n") 'forward-paragraph)
   (local-set-key (kbd "C-S-p") 'backward-paragraph)
@@ -189,7 +193,7 @@
 ;; [ emacs lisp slime navigation
 (mp/install-package 'elisp-slime-nav)
 (use-package elisp-slime-nav
-  :config
+  :init
   (add-hook 'emacs-lisp-mode-hook 'turn-on-elisp-slime-nav-mode)
   )
 ;; ]
@@ -208,7 +212,20 @@
 
 ;; [ helm
 ;;
-;; helm helps you steer into the right direction
+;; helm helps you steer into the right direction and is handy to have when
+;; - M-x'ing
+;; - swooping (helm-swoop)
+;; - imenu'ing
+;;
+;; C-Spc       to mark candidate
+;; M-a         mark all candidates
+;; C-c C-i     insert marked candidates in current buffer
+;; C-t         toggle between horizontal and vertical window
+;; [ C-u ] C-c h /  call helm-find
+;; C-c h b     resume current helm session
+;; C-c h C-c SPC helm-all-mark-rings
+;; helm-top    to view processes
+
 (mp/install-package 'helm)
 (mp/install-package 'helm-swoop)
 
@@ -216,58 +233,80 @@
   :init
   (progn
     (require 'helm-config)
-    (setq helm-candidate-number-limit 25)
-    ;; From https://gist.github.com/antifuchs/9238468
-    (setq helm-idle-delay 0.0 ; update fast sources immediately (doesn't).
-	  helm-input-idle-delay 0.01  ; this actually updates things
-	  ;; reeeelatively quickly.
-	  helm-truncate-lines t
-	  helm-quick-update t
-	  helm-M-x-requires-pattern nil
-	  helm-quick-update t
-	  helm-split-window-default-side (quote right)
-	  helm-swoop-split-direction 'split-window-horizontally
-	  )
-    ;; this one hooks into 'completing-read' and 'read-file-name'
-    ;; to enable helm-style narrowing
-    (helm-mode 1))
-  :config
-  (progn
+
+    (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB works in terminal
     (define-key helm-map (kbd "C-S-n") 'helm-next-source)
     (define-key helm-map (kbd "C-S-p") 'helm-previous-source)
-    ;;    (add-to-list 'helm-completing-read-handlers-alist '(find-file . ido))
+    (define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
+    (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to run persistent action
+
+    (global-set-key (kbd "C-c h") 'helm-command-prefix)
     (global-set-key (kbd "C-s") 'helm-swoop)
-    )
-  
-  :bind (("C-c h" . helm-mini))
-  )
+    (global-set-key (kbd "M-x") 'helm-M-x)
+    (global-set-key (kbd "M-y") 'helm-show-kill-ring)
+
+    (global-unset-key (kbd "C-x c"))
+
+    (when (executable-find "curl")
+      (setq helm-google-suggest-use-curl-p t))
+
+    ;; From https://gist.github.com/antifuchs/9238468
+    (setq helm-buffers-fuzzy-matching           t ; fuzzy matching buffer names when non--nil
+	  helm-ff-file-name-history-use-recentf t
+	  helm-ff-search-library-in-sexp        t ; search for library in `require' and `declare-function' sexp.
+	  helm-idle-delay                       0.0 ; update fast sources immediately (doesn't).
+	  helm-input-idle-delay                 0.01  ; this actually updates things
+	  helm-move-to-line-cycle-in-source     t ; move to end or beginning of source when reaching top or bottom of source.
+	  helm-M-x-requires-pattern             nil
+	  helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
+	  helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
+	  helm-truncate-lines                   t
+	  )
+
+    (add-to-list 'helm-sources-using-default-as-input 'helm-source-man-pages)
+    
+    ;; this one hooks into 'completing-read' and 'read-file-name'
+    ;; to enable helm-style narrowing
+    (helm-mode 1)))
+
 ;; ]
 
 ;; [ expand region
 
-(mp/install-package 'auto-compile)
+(mp/install-package 'expand-region)
+
+;; Very handy package. Sets er/try-expand-list on a per mode basis to list of
+;; defuns. Each defun marks part of the buffer. Incrementally largens the part
+;; of the buffer a defun operats on. The next larger marked part is then set
+;; to the region.
+;; To customize add defun to er/try-expand-list in any mode hook.
+
 (use-package expand-region
   :bind
   ("C-v" . er/expand-region)
   ("C-S-v" . er/contract-region)
   )
+
 ;; ]
 
 ;; [ highlight parenthesis
+
 (mp/install-package 'highlight-parentheses)
 (use-package highlight-parentheses
   :config
   (setq hl-paren-colors (list "red" "deep sky blue" "lawn green" "yellow"))
   (global-highlight-parentheses-mode 1)
   )
+
 ;; ]
 
 ;; [ yasnippet
 
 (mp/install-package 'yasnippet)
+
 (use-package yasnippet
-  :config
-  (setq yas-snippet-dirs '("~/.emacs.d/yasnippets/"))  
+  :init
+  (setq yas-snippet-dirs '("~/.emacs.d/yasnippets/"))
   (yas-global-mode 1)
   )
 
@@ -278,27 +317,25 @@
 (use-package auto-complete
   :init
   (require 'auto-complete-config)
-  :config
   (ac-config-default)
   (define-key ac-mode-map (kbd "C-M-s") 'ac-isearch)
   (setq ac-use-quick-help nil)
   (defun ac-emacs-lisp-mode-setup ()
     (setq ac-sources '(ac-source-features ;; collects 'require-able features from the file sytem
 		       ac-source-functions
-		       ac-source-yasnippet
 		       ac-source-variables
 		       ac-source-symbols
-		       ac-source-words-in-same-mode-buffers)
-	  )
-    )
-  )
+		       ac-source-words-in-same-mode-buffers))))
+
 ;; ]
 
 ;; [ ace jump mode
+
 (mp/install-package 'ace-jump-mode)
 (use-package ace-jump-mode
   :bind ("C-S-j" . ace-jump-mode)
   )
+
 ;; ]
 
 ;; [ js2 mode
@@ -312,17 +349,15 @@
 
 ;; [ info browser
 
-(defvar mp/info-index 0 "Index for info buffers. Used to make buffer names unique.")
-
-(defun mp/open-info-browser(node)
-  "Open a new frame and start a new info browser."
-  (interactive (list nil))
-  (select-frame (make-frame))
-  (info node (format "Info<%d>" mp/info-index))
-  (setq mp/info-index (+ 1 mp/info-index))
-  )
-
-(global-set-key (kbd "<f1>") 'mp/open-info-browser)
+(defadvice info (before
+		 info-browser-own-frame (&optional file-or-node buffer)
+		 activate)
+  "Open new frame for info browser."
+  (let ((next-index 0))
+    (while (get-buffer (format "info[%d]" next-index))
+      (setq next-index (+ 1 next-index)))
+    (setq buffer (format "info[%d]" next-index)))
+  (select-frame (make-frame)))
 
 (defun mp/Info-mode-hook ()
   "Personal info mode hook."
@@ -333,8 +368,18 @@
 
 ;; ]
 
-;; [ keybindings
+;; [ frame handling
 
+(defun mp/detach-window ()
+  "Close current window and display corresponding buffer in own frame."
+  (interactive)
+  (when (> (length (window-list)) 1)
+    (let ((buffer (current-buffer)))
+      (delete-window)
+      (select-frame (make-frame))
+      (switch-to-buffer buffer))))
+
+(global-set-key (kbd "<f1>") 'mp/detach-window)
 (global-set-key (kbd "<f2>") 'make-frame)
 (global-set-key (kbd "<f3>") 'delete-frame)
 
@@ -428,7 +473,9 @@
 ;; ]
 
 ;; [ prodigy
+
 (use-package prodigy
+  :bind ("<f5>" . prodigy)
   :config
   (prodigy-define-service
     :name "Echo Server"
@@ -436,8 +483,8 @@
     :args '("exec:java")
     :cwd "/home/matthias/java/NetClients/"
     )
-  (global-set-key (kbd "<f5>") 'prodigy)
   )
+
 ;; ]
 
 ;; [ speedbar
@@ -445,8 +492,7 @@
 (mp/install-package 'sr-speedbar)
 
 (use-package sr-speedbar
-  :config
-  (global-set-key (kbd "<f6>") 'sr-speedbar-toggle)
+  :bind ("<f6>" . sr-speedbar-toggle)
   )
 
 ;; ]
@@ -469,8 +515,7 @@
 
 ;; [ hungry delete mode
 ;;
-;; This mode makes backspace and C-d erase all consecutive whitespace
-;; instead of one.
+;; This mode makes backspace erase all consecutive whitespace (instead of just a single one).
 
 (mp/install-package 'hungry-delete)
 (require 'hungry-delete)
