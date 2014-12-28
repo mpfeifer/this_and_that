@@ -23,6 +23,7 @@
  '(helm-move-to-line-cycle-in-source t)
  '(helm-quick-update t)
  '(helm-scroll-amount 1)
+ '(help-window-select t)
  '(package-archives (quote (("melpa" . "http://melpa.org/packages/"))))
  '(scroll-conservatively 65000)
  '(tool-bar-mode nil)
@@ -63,14 +64,24 @@
 
 ;; ]
 
+;; [ s
+
+(use-package s
+  :ensure t)
+
+;;]
+
 ;; [ General Emacs Behaviour
 
 (setq delete-exited-processes t)
-(setq yes-or-no-p 'y-or-n-p)
+(defalias 'yes-or-no-p 'y-or-n-p)
+(defalias 'symbol-to-string 'intern)
+(defalias 'string-to-symbol 'symbol-name)
 
 ;; ]
 
 ;; [ appearence
+
 (when window-system
   (tool-bar-mode -1)
   (menu-bar-mode 1)
@@ -88,8 +99,8 @@
 ;; buffers are only auto-compiled if a corresponding elc file
 ;; already exists
 
-(mp/install-package 'auto-compile)
 (use-package auto-compile
+  :ensure t
   :init
   (setq auto-compile-display-buffer nil)
   (setq auto-compile-mode-line-counter t)
@@ -191,14 +202,16 @@
 ;; ]
 
 ;; [ emacs lisp slime navigation
-(mp/install-package 'elisp-slime-nav)
+
 (use-package elisp-slime-nav
+  :ensure t
   :init
   (add-hook 'emacs-lisp-mode-hook 'turn-on-elisp-slime-nav-mode)
   )
 ;; ]
 
 ;; [ save history
+
 (setq savehist-file "~/.emacs.d/savehist")
 (savehist-mode 1)
 (setq history-length t)
@@ -221,15 +234,15 @@
 ;; M-a         mark all candidates
 ;; C-c C-i     insert marked candidates in current buffer
 ;; C-t         toggle between horizontal and vertical window
-;; [ C-u ] C-c h /  call helm-find
+;; ( C-u ) C-c h /  call helm-find
 ;; C-c h b     resume current helm session
 ;; C-c h C-c SPC helm-all-mark-rings
 ;; helm-top    to view processes
 
-(mp/install-package 'helm)
 (mp/install-package 'helm-swoop)
 
 (use-package helm
+  :ensure t
   :init
   (progn
     (require 'helm-config)
@@ -273,8 +286,6 @@
 
 ;; [ expand region
 
-(mp/install-package 'expand-region)
-
 ;; Very handy package. Sets er/try-expand-list on a per mode basis to list of
 ;; defuns. Each defun marks part of the buffer. Incrementally largens the part
 ;; of the buffer a defun operats on. The next larger marked part is then set
@@ -282,6 +293,7 @@
 ;; To customize add defun to er/try-expand-list in any mode hook.
 
 (use-package expand-region
+  :ensure t
   :bind
   ("C-v" . er/expand-region)
   ("C-S-v" . er/contract-region)
@@ -291,8 +303,8 @@
 
 ;; [ highlight parenthesis
 
-(mp/install-package 'highlight-parentheses)
 (use-package highlight-parentheses
+  :ensure t
   :config
   (setq hl-paren-colors (list "red" "deep sky blue" "lawn green" "yellow"))
   (global-highlight-parentheses-mode 1)
@@ -302,24 +314,33 @@
 
 ;; [ yasnippet
 
-(mp/install-package 'yasnippet)
-
 (use-package yasnippet
+  :ensure t
   :init
   (setq yas-snippet-dirs '("~/.emacs.d/yasnippets/"))
   (yas-global-mode 1)
-  )
+  (define-key yas-minor-mode-map (kbd "<SPC>") 'yas-expand))
 
 ;; ]
 
 ;; [ auto complete
-(mp/install-package 'auto-complete)
+
 (use-package auto-complete
+  :ensure t
   :init
-  (require 'auto-complete-config)
+  (require 'auto-complete-config)  
   (ac-config-default)
   (define-key ac-mode-map (kbd "C-M-s") 'ac-isearch)
   (setq ac-use-quick-help nil)
+
+  (add-hook 'html-mode-hook '(lambda ()
+			       "Enable html auto-complete for html-mode."
+			       (auto-complete-mode)
+			       (require 'ac-html)
+			       (add-to-list 'ac-sources 'ac-source-html-attribute-value)
+			       (add-to-list 'ac-sources 'ac-source-html-tag)
+			       (add-to-list 'ac-sources 'ac-source-html-attribute)))
+
   (defun ac-emacs-lisp-mode-setup ()
     (setq ac-sources '(ac-source-features ;; collects 'require-able features from the file sytem
 		       ac-source-functions
@@ -331,8 +352,8 @@
 
 ;; [ ace jump mode
 
-(mp/install-package 'ace-jump-mode)
 (use-package ace-jump-mode
+  :ensure t
   :bind ("C-S-j" . ace-jump-mode)
   )
 
@@ -340,8 +361,8 @@
 
 ;; [ js2 mode
 
-(mp/install-package 'js2-mode)
 (use-package js2-mode
+  :ensure t
   :mode "\\.js\\'"
   )
 
@@ -475,6 +496,7 @@
 ;; [ prodigy
 
 (use-package prodigy
+  :ensure t
   :bind ("<f5>" . prodigy)
   :config
   (prodigy-define-service
@@ -489,9 +511,8 @@
 
 ;; [ speedbar
 
-(mp/install-package 'sr-speedbar)
-
 (use-package sr-speedbar
+  :ensure t
   :bind ("<f6>" . sr-speedbar-toggle)
   )
 
@@ -517,9 +538,11 @@
 ;;
 ;; This mode makes backspace erase all consecutive whitespace (instead of just a single one).
 
-(mp/install-package 'hungry-delete)
-(require 'hungry-delete)
-(global-hungry-delete-mode)
+(use-package hungry-delete
+  :ensure t
+  :config
+  (require 'hungry-delete)
+  (global-hungry-delete-mode))
 
 ;; ]
 
@@ -543,7 +566,7 @@ Otherwise just call (ansi-term \"/bin/bash\")"
 If the current windows buffer is called *ansi-term* delete the window.
 If it's the only window in the frame, also close the frame.
 If the current windows buffer is not called *ansi-term* and the current 
-window shows exactly one window then split the window and either show
+frame hosts exactly one window then split the window and either show
 existing *ansi-term* buffer or execute a new shell in ansi-term. If the
 current frame shows more then one window open a new frame and open an
 existing *ansi-term* there (or execute a new shell in ansi-term)."
@@ -563,5 +586,14 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
 	  (start-bash-or-select-existing))))))
 
 (global-set-key (kbd "<f7>") 'start-bash-in-ansi-term)
+
+;; ]
+
+;; [ C/C++
+
+(defun mp/c-mode-hook ()
+  (local-set-key (kbd "C-c C-c") 'compile))
+
+(add-hook 'c-mode-hook 'mp/c-mode-hook)
 
 ;; ]
