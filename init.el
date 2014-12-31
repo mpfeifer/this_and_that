@@ -18,6 +18,13 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(auto-insert-directory "~/.emacs.d/autoinsert/")
+ '(auto-insert-query nil)
+ '(auto-insert-alist '(
+		       (("\\.html\\'" . "Hypertext Markup Language 4.01 strict") . ["template.html" mp/yas-preprocessor])
+		       (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor])
+		       (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])		       
+		       ))
  '(helm-candidate-number-limit 75)
  '(helm-ff-file-name-history-use-recentf t)
  '(helm-move-to-line-cycle-in-source t)
@@ -70,6 +77,27 @@
   :ensure t)
 
 ;;]
+
+;; [ auto insert
+
+(defun mp/yas-preprocessor()
+  "Replace all yasnippets in buffer. Snippets must be marked with $(yas ....)."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "$(yas \\([a-zA-Z0-9_]+\\))" (point-max) t)
+      (let ((mb (match-beginning 0))
+            (ms (match-string 1))
+            (me (match-end 0)))
+        (goto-char (match-beginning 0))
+        (delete-char 6)
+        (forward-char (- me mb 6))
+        (delete-char -1)
+        (yas-expand)))))
+
+(auto-insert-mode)
+
+;; ]
 
 ;; [ General Emacs Behaviour
 
@@ -410,7 +438,7 @@
 
 (global-set-key (kbd "<f4>") 'calendar)
 (setq calendar-mark-holidays-flag t)
-(setq european-calendar-style t)
+(setq calendar-date-style 'european)
 (setq calendar-latitude 50.8) ;; 50,840440
 (setq calendar-longitude 6.1) ;;  6,116797
 (setq calendar-location-name "Bardenberg")
@@ -465,7 +493,7 @@
 	      (list (calendar-gregorian-from-absolute (+ easter (car l)))
 		    (nth 1 l)))
 	    '(
-	      ;;(-48 "Rosenmontag")
+	      (-48 "Rosenmontag")
 	      ( -2 "Karfreitag")
 	      ( 0 "Ostersonntag")
 	      ( +1 "Ostermontag")
@@ -487,10 +515,12 @@
 ;; [ session management
 
 ;; save and restore open buffers
-(desktop-save-mode nil)
+(desktop-save-mode)
 
 ;; [ org mode
+
 (add-hook 'org-mode-hook 'auto-fill-mode)
+
 ;; ]
 
 ;; [ prodigy
@@ -595,5 +625,25 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
   (local-set-key (kbd "C-c C-c") 'compile))
 
 (add-hook 'c-mode-hook 'mp/c-mode-hook)
+
+;; ]
+
+;; [ web development
+
+(defcustom web-project-root "~/www/" "Project root directory for new www projects")
+
+(defun mp/start-web-project (name)
+  (interactive "MProjectname?")
+  (let ((projectroot (concat web-project-root name)))
+    (unless (file-exists-p projectroot)
+      (mkdir projectroot))
+    (select-frame (make-frame))
+    (split-window-vertically)
+    (find-file (concat projectroot "/" name ".html"))
+    (other-window 1)
+    (find-file (concat projectroot "/" name ".js"))
+    (split-window-horizontally)
+    (find-file (concat projectroot "/" name ".css"))
+    (other-window -1)))
 
 ;; ]
