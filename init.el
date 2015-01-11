@@ -23,7 +23,8 @@
  '(auto-insert-alist '(
 		       (("\\.html\\'" . "Hypertext Markup Language 4.01 strict") . ["template.html" mp/yas-preprocessor])
 		       (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor])
-		       (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])		       
+		       (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])
+		       (("\\.[hH]\\(pp\\|PP\\)?" . "C/C++ Header") . ["template.h" mp/yas-preprocessor])
 		       ))
  '(helm-candidate-number-limit 75)
  '(helm-ff-file-name-history-use-recentf t)
@@ -48,7 +49,7 @@
 
 ;; [ load-path
 
-(add-to-list 'load-path "~/.emacs.d/elisp/")
+(add-to-list 'load-path "~/.emacs.d/lib/")
 (add-to-list 'load-path "~/.emacs.d/")
 
 ;; ]
@@ -103,8 +104,8 @@
 
 (setq delete-exited-processes t)
 (defalias 'yes-or-no-p 'y-or-n-p)
-(defalias 'symbol-to-string 'intern)
-(defalias 'string-to-symbol 'symbol-name)
+(defalias 'symbol-to-string 'symbol-name)
+(defalias 'string-to-symbol 'intern)
 
 ;; ]
 
@@ -207,9 +208,9 @@
   (local-set-key (kbd "C-S-p") 'backward-paragraph)
   (local-set-key (kbd "C-*") 'imenu)
   (make-local-variable 'paragraph-start)
-  (setq paragraph-start ";; [")
+  (setq paragraph-start "^;; \\[")
   (make-local-variable 'paragraph-separate)
-  (setq paragraph-separate ";; ]")
+  (setq paragraph-separate "^;; ]$")
   )
 
 (defun byte-compile-current-buffer ()
@@ -420,13 +421,14 @@
 ;; [ frame handling
 
 (defun mp/detach-window ()
-  "Close current window and display corresponding buffer in own frame."
+  "Iff current frame hosts at least two windows, close current window
+and display corresponding buffer in new frame."
   (interactive)
-  (when (> (length (window-list)) 1)
-    (let ((buffer (current-buffer)))
-      (delete-window)
-      (select-frame (make-frame))
-      (switch-to-buffer buffer))))
+  (if (not (one-window-p))
+      (let ((buffer (current-buffer)))
+	(delete-window)
+	(display-buffer-pop-up-frame buffer nil))
+    (message "Refusing to detach window when one-window-p is true.")))
 
 (global-set-key (kbd "<f1>") 'mp/detach-window)
 (global-set-key (kbd "<f2>") 'make-frame)
@@ -532,8 +534,8 @@
   (prodigy-define-service
     :name "Echo Server"
     :command "mvn"
-    :args '("exec:java")
-    :cwd "/home/matthias/java/NetClients/"
+    :args '("exec:java -DmainClass=\"EchoServer-1.0.jar\"")
+    :cwd "/home/user/java/EchoServer/"
     )
   )
 
