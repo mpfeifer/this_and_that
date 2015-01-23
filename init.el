@@ -18,14 +18,16 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(auto-insert-alist (quote ((("\\.html\\'" . "Hypertext Markup Language 4.01 strict") . ["template.html" mp/yas-preprocessor]) (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor]) (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor]) (("\\.[hH]\\(pp\\|PP\\)?" . "C/C++ Header") . ["template.h" mp/yas-preprocessor]))))
  '(auto-insert-directory "~/.emacs.d/autoinsert/")
  '(auto-insert-query nil)
- '(auto-insert-alist '(
-		       (("\\.html\\'" . "Hypertext Markup Language 4.01 strict") . ["template.html" mp/yas-preprocessor])
-		       (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor])
-		       (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])
-		       (("\\.[hH]\\(pp\\|PP\\)?" . "C/C++ Header") . ["template.h" mp/yas-preprocessor])
-		       ))
+ '(calendar-latitude 50.8)
+ '(calendar-location-name "Bardenberg")
+ '(calendar-longitude 6.1)
+ '(custom-safe-themes (quote ("9dae95cdbed1505d45322ef8b5aa90ccb6cb59e0ff26fef0b8f411dfc416c552" "1934bf7e1713bf706a9cb36cc6a002741773aa42910ca429df194d007ee05c67" "f0ea6118d1414b24c2e4babdc8e252707727e7b4ff2e791129f240a2b3093e32" default)))
+ '(ediff-diff-options "")
+ '(ediff-split-window-function (quote split-window-horizontally))
+ '(ediff-window-setup-function (quote ediff-setup-windows-default))
  '(helm-candidate-number-limit 75)
  '(helm-ff-file-name-history-use-recentf t)
  '(helm-move-to-line-cycle-in-source t)
@@ -50,7 +52,6 @@
 ;; [ load-path
 
 (add-to-list 'load-path "~/.emacs.d/lib/")
-(add-to-list 'load-path "~/.emacs.d/")
 
 ;; ]
 
@@ -123,6 +124,11 @@
 (setq global-hl-line-mode t)
 (hl-line-mode)
 
+(use-package theme-changer
+  :ensure t
+  :config
+  (change-theme 'solarized-light 'solarized-dark))
+
 ;; [ auto compile
 
 ;; buffers are only auto-compiled if a corresponding elc file
@@ -130,7 +136,7 @@
 
 (use-package auto-compile
   :ensure t
-  :init
+  :config
   (setq auto-compile-display-buffer nil)
   (setq auto-compile-mode-line-counter t)
   (auto-compile-on-save-mode)
@@ -272,9 +278,9 @@
 
 (use-package helm
   :ensure t
-  :init
+  :config
   (progn
-    (require 'helm-config)
+					;    (require 'helm-config)
 
     (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB works in terminal
     (define-key helm-map (kbd "C-S-n") 'helm-next-source)
@@ -441,9 +447,6 @@ and display corresponding buffer in new frame."
 (global-set-key (kbd "<f4>") 'calendar)
 (setq calendar-mark-holidays-flag t)
 (setq calendar-date-style 'european)
-(setq calendar-latitude 50.8) ;; 50,840440
-(setq calendar-longitude 6.1) ;;  6,116797
-(setq calendar-location-name "Bardenberg")
 
 ;; german weekdays
 (setq calendar-day-name-array
@@ -525,7 +528,7 @@ and display corresponding buffer in new frame."
 
 ;; ]
 
-;; [ prodigy
+;; [ prodigy service manager
 
 (use-package prodigy
   :ensure t
@@ -632,7 +635,11 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
 
 ;; [ web development
 
-(defcustom web-project-root "~/www/" "Project root directory for new www projects")
+(defgroup development nil "All things related to development [mp].")
+
+(defgroup web nil "All things related to web development [mp]." :group 'development)
+
+(defcustom web-project-root "~/www/" "New web projects are stored in this directory." :group 'web)
 
 (defun mp/start-web-project (name)
   (interactive "MProjectname?")
@@ -649,3 +656,56 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
     (other-window -1)))
 
 ;; ]
+
+;; [ elnode
+
+(use-package elnode
+  :ensure t
+  :bind
+  ("<f12> s" . mp/elnode-webserver-start)
+  ("<f12> e" . mp/elnode-webserver-stop)
+  :config
+
+  (defconst mp/elnode-webserver-port 80 "Port number for the elnode webserver.")
+
+  (defconst mp/elnode-webserver-ip "127.0.0.1" "Ip4 address for the elnode webserver.")
+
+  (defconst mp/elnode-webserver-request-handler 'elnode-webserver "Request handler for the elnode webserver.")
+
+  (setq elnode-log-files-directory (concat elnode-config-directory "log/"))
+  
+  
+  (defun mp/elnode-webserver-start ()
+    "Start elnode webserver with default settings."
+    (interactive)
+    (elnode-start mp/elnode-webserver-request-handler
+		  :port mp/elnode-webserver-port
+		  :host mp/elnode-webserver-ip))
+
+  (defun mp/elnode-webserver-stop ()
+    "Stop elnode default webserver with default settings."
+    (interactive)
+    (elnode-stop  mp/elnode-webserver-port))
+  
+  )
+
+;; ]
+
+;; [ winner mode
+
+(winner-mode)
+
+;; ]
+
+;; [ ediff
+
+(add-hook 'ediff-after-quit-hook-internal 'winner-undo)
+
+;; ]
+
+;; [ whitespace mode
+
+(global-set-key (kbd "<f12> w") 'whitespace-mode)
+
+;; ]
+
