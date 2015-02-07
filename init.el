@@ -18,14 +18,16 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(auto-insert-alist (quote ((("pom.xml//'" . "Maven Project Object Model") . ["template-pom.xml" mp/yas-preprocessor]) (("\\.html\\'" . "Hypertext Markup Language 4.01 strict") . ["template.html" mp/yas-preprocessor]) (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor]) (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor]) (("\\.[hH]\\(pp\\|PP\\)?" . "C/C++ Header") . ["template.h" mp/yas-preprocessor]))))
  '(auto-insert-directory "~/.emacs.d/autoinsert/")
  '(auto-insert-query nil)
- '(auto-insert-alist '(
-		       (("\\.html\\'" . "Hypertext Markup Language 4.01 strict") . ["template.html" mp/yas-preprocessor])
-		       (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor])
-		       (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])
-		       (("\\.[hH]\\(pp\\|PP\\)?" . "C/C++ Header") . ["template.h" mp/yas-preprocessor])
-		       ))
+ '(calendar-latitude 50.8)
+ '(calendar-location-name "Bardenberg")
+ '(calendar-longitude 6.1)
+ '(custom-safe-themes (quote ("9dae95cdbed1505d45322ef8b5aa90ccb6cb59e0ff26fef0b8f411dfc416c552" "1934bf7e1713bf706a9cb36cc6a002741773aa42910ca429df194d007ee05c67" "f0ea6118d1414b24c2e4babdc8e252707727e7b4ff2e791129f240a2b3093e32" default)))
+ '(ediff-diff-options "")
+ '(ediff-split-window-function (quote split-window-horizontally))
+ '(ediff-window-setup-function (quote ediff-setup-windows-default))
  '(helm-candidate-number-limit 75)
  '(helm-ff-file-name-history-use-recentf t)
  '(helm-move-to-line-cycle-in-source t)
@@ -35,7 +37,8 @@
  '(package-archives (quote (("melpa" . "http://melpa.org/packages/"))))
  '(scroll-conservatively 65000)
  '(tool-bar-mode nil)
- '(truncate-lines t))
+ '(truncate-lines t)
+ '(view-read-only t))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -43,14 +46,15 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(calendar-today ((t (:underline "red"))))
- '(speedbar-highlight-face ((t (:background "burlywood")))))
+ '(speedbar-highlight-face ((t (:background "burlywood"))) t))
 
 ;; ]
 
-;; [ load-path
+;; [ Load-path
 
 (add-to-list 'load-path "~/.emacs.d/lib/")
-(add-to-list 'load-path "~/.emacs.d/")
+(add-to-list 'load-path "~/.emacs.d/pman/")
+
 
 ;; ]
 
@@ -120,8 +124,12 @@
 (setq inhibit-startup-screen t)
 
 (require 'hl-line)
-(setq global-hl-line-mode t)
-(hl-line-mode)
+(global-hl-line-mode nil)
+
+(use-package theme-changer
+  :ensure t
+  :config
+  (change-theme 'solarized-light 'solarized-dark))
 
 ;; [ auto compile
 
@@ -130,7 +138,7 @@
 
 (use-package auto-compile
   :ensure t
-  :init
+  :config
   (setq auto-compile-display-buffer nil)
   (setq auto-compile-mode-line-counter t)
   (auto-compile-on-save-mode)
@@ -272,18 +280,15 @@
 
 (use-package helm
   :ensure t
-  :init
+  :config
   (progn
-    (require 'helm-config)
-
+					;    (require 'helm-config)
     (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB works in terminal
     (define-key helm-map (kbd "C-S-n") 'helm-next-source)
     (define-key helm-map (kbd "C-S-p") 'helm-previous-source)
     (define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
     (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to run persistent action
-
-    (global-set-key (kbd "C-c h") 'helm-command-prefix)
-    (global-set-key (kbd "C-s") 'helm-swoop)
+    (global-set-key (kbd "C-M-s") 'helm-swoop)
     (global-set-key (kbd "M-x") 'helm-M-x)
     (global-set-key (kbd "M-y") 'helm-show-kill-ring)
 
@@ -302,8 +307,7 @@
 	  helm-M-x-requires-pattern             nil
 	  helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
 	  helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
-	  helm-truncate-lines                   t
-	  )
+	  helm-truncate-lines                   t)
 
     (add-to-list 'helm-sources-using-default-as-input 'helm-source-man-pages)
     
@@ -345,7 +349,7 @@
 
 (use-package yasnippet
   :ensure t
-  :init
+  :config
   (setq yas-snippet-dirs '("~/.emacs.d/yasnippets/"))
   (yas-global-mode 1)
   (define-key yas-minor-mode-map (kbd "<SPC>") 'yas-expand))
@@ -356,7 +360,7 @@
 
 (use-package auto-complete
   :ensure t
-  :init
+  :config
   (require 'auto-complete-config)  
   (ac-config-default)
   (define-key ac-mode-map (kbd "C-M-s") 'ac-isearch)
@@ -418,32 +422,11 @@
 
 ;; ]
 
-;; [ frame handling
-
-(defun mp/detach-window ()
-  "Iff current frame hosts at least two windows, close current window
-and display corresponding buffer in new frame."
-  (interactive)
-  (if (not (one-window-p))
-      (let ((buffer (current-buffer)))
-	(delete-window)
-	(display-buffer-pop-up-frame buffer nil))
-    (message "Refusing to detach window when one-window-p is true.")))
-
-(global-set-key (kbd "<f1>") 'mp/detach-window)
-(global-set-key (kbd "<f2>") 'make-frame)
-(global-set-key (kbd "<f3>") 'delete-frame)
-
-;; ]
-
 ;; [ calendar
 
 (global-set-key (kbd "<f4>") 'calendar)
 (setq calendar-mark-holidays-flag t)
 (setq calendar-date-style 'european)
-(setq calendar-latitude 50.8) ;; 50,840440
-(setq calendar-longitude 6.1) ;;  6,116797
-(setq calendar-location-name "Bardenberg")
 
 ;; german weekdays
 (setq calendar-day-name-array
@@ -525,7 +508,7 @@ and display corresponding buffer in new frame."
 
 ;; ]
 
-;; [ prodigy
+;; [ prodigy service manager
 
 (use-package prodigy
   :ensure t
@@ -632,7 +615,13 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
 
 ;; [ web development
 
-(defcustom web-project-root "~/www/" "Project root directory for new www projects")
+(defgroup mp nil "All things related to my customization [mp].")
+
+(defgroup development nil "All things related to development [mp]." :group 'mp)
+
+(defgroup web nil "All things related to web development [mp]." :group 'development)
+
+(defcustom web-project-root "~/www/" "New web projects are stored in this directory." :group 'web)
 
 (defun mp/start-web-project (name)
   (interactive "MProjectname?")
@@ -647,5 +636,121 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
     (split-window-horizontally)
     (find-file (concat projectroot "/" name ".css"))
     (other-window -1)))
+
+;; ]
+
+;; [ elnode
+
+(use-package elnode
+  :ensure t
+  :bind
+  ("<f12> s" . mp/elnode-webserver-start)
+  ("<f12> e" . mp/elnode-webserver-stop)
+  :config
+
+  (defconst mp/elnode-webserver-port 80 "Port number for the elnode webserver.")
+
+  (defconst mp/elnode-webserver-ip "127.0.0.1" "Ip4 address for the elnode webserver.")
+
+  (defconst mp/elnode-webserver-request-handler 'elnode-webserver "Request handler for the elnode webserver.")
+
+  (setq elnode-log-files-directory (concat elnode-config-directory "log/"))
+  
+  
+  (defun mp/elnode-webserver-start ()
+    "Start elnode webserver with default settings."
+    (interactive)
+    (elnode-start mp/elnode-webserver-request-handler
+		  :port mp/elnode-webserver-port
+		  :host mp/elnode-webserver-ip))
+
+  (defun mp/elnode-webserver-stop ()
+    "Stop elnode default webserver with default settings."
+    (interactive)
+    (elnode-stop  mp/elnode-webserver-port))
+  
+  )
+
+;; ]
+
+;; [ frame+window handling
+
+(defgroup frames+windows nil "All things related to windows and frames [mp]." :group 'mp)
+
+(defcustom mp/frame-configuration-file "~/.emacs.d/frame-configuration.el" "New web projects are stored in this directory." :group 'famres+windows)
+
+(winner-mode)
+
+(add-hook 'kill-emacs-hook #'(lambda ()
+			       "Store window configuration in filesystem."
+			       (interactive)
+			       (frame-configuration-to-register ?w)
+			       (with-temp-buffer
+				 (insert (prin1-to-string (get-register ?w)))
+				 (write-region (point-min) (point-max) mp/frame-configuration-file))))
+
+(defun mp/detach-window ()
+  "Iff current frame hosts at least two windows, close current window
+and display corresponding buffer in new frame."
+  (interactive)
+  (if (not (one-window-p))
+      (let ((buffer (current-buffer)))
+	(delete-window)
+	(display-buffer-pop-up-frame buffer nil))
+    (message "Refusing to detach window when one-window-p is true.")))
+
+(global-set-key (kbd "<f1>") 'mp/detach-window)
+(global-set-key (kbd "<f2>") 'make-frame)
+(global-set-key (kbd "<f3>") 'delete-frame)
+
+;; ]
+
+;; [ ediff
+
+(add-hook 'ediff-after-quit-hook-internal 'winner-undo)
+
+;; ]
+
+;; [ whitespace mode
+
+(global-set-key (kbd "<f12> w") 'whitespace-mode)
+
+;; ]
+
+;; [ Man mode
+
+(defsubst scroll-up-one-line ()
+  (interactive)
+  (scroll-up 1))
+
+(defsubst scroll-down-one-line ()
+  (interactive)  
+  (scroll-down 1))
+
+(defun mp/man-mode-hook ()
+  (define-key Man-mode-map (kbd "C-n") 'scroll-up-one-line)
+  (define-key Man-mode-map (kbd "C-p") 'scroll-down-one-line))
+
+(add-hook 'Man-mode-hook 'mp/man-mode-hook)
+
+;; ]
+
+;; [ emacs server
+
+(server-start)
+
+;; ]
+
+;; [ java mode
+
+(use-package pman
+  :init
+  (require 'pman))
+
+(defun mp/java-mode-hook ()
+  "Personal java mode hook [mp]."
+  (pman-minor-mode))
+  
+(add-hook 'java-mode-hook 'mp/java-mode-hook)
 
 ;; ]
