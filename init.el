@@ -754,3 +754,23 @@ and display corresponding buffer in new frame."
 (add-hook 'java-mode-hook 'mp/java-mode-hook)
 
 ;; ]
+
+;; [ dired
+
+;; make dired use find-alternate-file instead of standard dired-find-file 
+;; this way the one single dired buffer is reused when new directories are
+;; found
+;;
+(put 'dired-find-alternate-file 'disabled nil)
+
+;; prevent new buffer creation when going up in the directory tree
+;;
+(add-hook 'dired-mode-hook
+ (lambda ()
+  (define-key dired-mode-map (kbd "^")
+    (lambda () (interactive) (find-alternate-file "..")))
+  ; was dired-up-directory
+ ))
+
+;; ]
+
