@@ -13,32 +13,8 @@
 
 ;; [ custom set variables
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(auto-insert-alist (quote ((("pom.xml//'" . "Maven Project Object Model") . ["template-pom.xml" mp/yas-preprocessor]) (("\\.html\\'" . "Hypertext Markup Language 4.01 strict") . ["template.html" mp/yas-preprocessor]) (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor]) (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor]) (("\\.[hH]\\(pp\\|PP\\)?" . "C/C++ Header") . ["template.h" mp/yas-preprocessor]))))
- '(auto-insert-directory "~/.emacs.d/autoinsert/")
- '(auto-insert-query nil)
- '(calendar-latitude 50.8)
- '(calendar-location-name "Bardenberg")
- '(calendar-longitude 6.1)
- '(custom-safe-themes (quote ("9dae95cdbed1505d45322ef8b5aa90ccb6cb59e0ff26fef0b8f411dfc416c552" "1934bf7e1713bf706a9cb36cc6a002741773aa42910ca429df194d007ee05c67" "f0ea6118d1414b24c2e4babdc8e252707727e7b4ff2e791129f240a2b3093e32" default)))
- '(ediff-diff-options "")
- '(ediff-split-window-function (quote split-window-horizontally))
- '(ediff-window-setup-function (quote ediff-setup-windows-default))
- '(helm-candidate-number-limit 75)
- '(helm-ff-file-name-history-use-recentf t)
- '(helm-move-to-line-cycle-in-source t)
- '(helm-quick-update t)
- '(helm-scroll-amount 1)
- '(help-window-select t)
- '(package-archives (quote (("melpa" . "http://melpa.org/packages/"))))
- '(scroll-conservatively 65000)
- '(tool-bar-mode nil)
- '(truncate-lines t)
- '(view-read-only t))
+(setq custom-file "~/.emacs.d/custom.el")
+(load custom-file)
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -48,13 +24,15 @@
  '(calendar-today ((t (:underline "red"))))
  '(speedbar-highlight-face ((t (:background "burlywood"))) t))
 
+;; quiet reference to free variable warnings
+
+(defvar Man-mode-map)
 ;; ]
 
 ;; [ Load-path
 
 (add-to-list 'load-path "~/.emacs.d/lib/")
 (add-to-list 'load-path "~/.emacs.d/pman/")
-
 
 ;; ]
 
@@ -86,7 +64,7 @@
 ;; [ auto insert
 
 (defun mp/yas-preprocessor()
-  "Replace all yasnippets in buffer. Snippets must be marked with $(yas ....)."
+  "Replace all yasnippets in buffer. Snippets must be marked with $(yas ...)."
   (interactive)
   (save-excursion
     (goto-char (point-min))
@@ -94,11 +72,53 @@
       (let ((mb (match-beginning 0))
             (ms (match-string 1))
             (me (match-end 0)))
-        (goto-char (match-beginning 0))
-        (delete-char 6)
-        (forward-char (- me mb 6))
-        (delete-char -1)
+        (goto-char mb)             ; go to the $ (the beginning of the match)
+        (delete-char 6)            ; delete '$(yas ' prefix
+        (forward-char (- me mb 6)) ; go to the end of the match
+        (delete-char -1)           ; delete the last ')'
         (yas-expand)))))
+
+(setq auto-insert-directory "~/.emacs.d/templates/"
+      auto-insert-query nil
+      auto-insert-alist (quote
+			 (
+			  (("pom.xml//'" . "Maven Project Object Model") . ["template-pom.xml" mp/yas-preprocessor])
+			  (("Activator.java" . "OSGI BundleActivator") . "Activator.java")
+			  (("\\.html\\'" . "HTML Skeleton")
+			   "<html>" > \n
+			   "<head>" > \n
+			   "<meta charset=\"utf-8\" />" > \n
+			   "<title></title>" > \n
+			   "<link rel=\"stylesheet\" type=\"text/css\" href=\"" (file-name-sans-extension (buffer-name)) ".css\" />" > \n
+			   "<script src=\"http://code.jquery.com/jquery-1.11.1.js\"></script>" > \n
+			   "<script src=\"" (file-name-sans-extension (buffer-name)) ".js\"></script>" > \n
+			   "</head>" > \n
+			   "<body>" \n > 
+			   _ > \n
+			   "</body>" > \n
+			   "</html>" > \n)
+			  (("\\.xml\\'" . "XML") . ["template.xml" mp/yas-preprocessor])
+			  (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor])
+			  (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])
+			  (("\\.\\([Hh]\\|hh\\|hpp\\)\\'" . "C++ header")
+			   (upcase
+			    (concat
+			     (file-name-sans-extension (buffer-name))
+			     "_"
+			     (file-name-extension buffer-file-name)))
+			   > "#ifndef " str \n
+			   > "#define " str "\n\n"
+			   > "class " (file-name-sans-extension (buffer-name)) " {\n"
+			   > "public:" "\n"
+			   > (file-name-sans-extension (buffer-name)) "();\n"
+			   > "virtual ~" (file-name-sans-extension (buffer-name)) "();\n"
+			   _
+			   > "};"
+			   "\n\n"
+			   > "#endif")
+			  )
+			 )
+      )
 
 (auto-insert-mode)
 
@@ -106,6 +126,7 @@
 
 ;; [ General Emacs Behaviour
 
+(put 'downcase-region 'disabled nil)
 (setq delete-exited-processes t)
 (defalias 'yes-or-no-p 'y-or-n-p)
 (defalias 'symbol-to-string 'symbol-name)
@@ -118,6 +139,7 @@
 (when window-system
   (tool-bar-mode -1)
   (menu-bar-mode 1)
+  (tooltip-mode -1)
   (scroll-bar-mode -1))
 
 ;; do not show startup screen
@@ -126,9 +148,13 @@
 (require 'hl-line)
 (global-hl-line-mode nil)
 
+;; change theme according to sunrise/sunset times
+;; dark theme for the night. light theme for the day.
+;;
 (use-package theme-changer
   :ensure t
   :config
+  (mp/install-package 'solarized-theme)
   (change-theme 'solarized-light 'solarized-dark))
 
 ;; [ auto compile
@@ -275,8 +301,6 @@
 ;; C-c h b     resume current helm session
 ;; C-c h C-c SPC helm-all-mark-rings
 ;; helm-top    to view processes
-
-(mp/install-package 'helm-swoop)
 
 (use-package helm
   :ensure t
@@ -615,7 +639,7 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
 
 ;; [ web development
 
-(defgroup mp nil "All things related to my customization [mp].")
+(defgroup mp nil "All things related to my customization [mp]." :group 'Emacs)
 
 (defgroup development nil "All things related to development [mp]." :group 'mp)
 
@@ -640,6 +664,9 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
 ;; ]
 
 ;; [ elnode
+
+(eval-when-compile
+  (require 'elnode))
 
 (use-package elnode
   :ensure t
@@ -668,7 +695,6 @@ existing *ansi-term* there (or execute a new shell in ansi-term)."
     "Stop elnode default webserver with default settings."
     (interactive)
     (elnode-stop  mp/elnode-webserver-port))
-  
   )
 
 ;; ]
@@ -699,9 +725,25 @@ and display corresponding buffer in new frame."
 	(display-buffer-pop-up-frame buffer nil))
     (message "Refusing to detach window when one-window-p is true.")))
 
+(defun split-window-below-select ()
+  "Just like split-window-below, but select the newly created window."
+  (interactive)
+  (split-window-below)
+  (other-window 1)
+  )
+
+(defun split-window-right-select ()
+  "Just like split-window-right, but select the newly created window."
+  (interactive)
+  (split-window-right)
+  (other-window 1)
+  )
+
 (global-set-key (kbd "<f1>") 'mp/detach-window)
 (global-set-key (kbd "<f2>") 'make-frame)
 (global-set-key (kbd "<f3>") 'delete-frame)
+(global-set-key (kbd "C-x 2") 'split-window-below-select)
+(global-set-key (kbd "C-x 3") 'split-window-right-select)
 
 ;; ]
 
@@ -743,34 +785,29 @@ and display corresponding buffer in new frame."
 
 ;; [ java mode
 
-(use-package pman
-  :init
-  (require 'pman))
 
-(defun mp/java-mode-hook ()
-  "Personal java mode hook [mp]."
-  (pman-minor-mode))
-  
-(add-hook 'java-mode-hook 'mp/java-mode-hook)
+(add-to-list 'load-path "~/.emacs.d/jdee-2.4.1/lisp")
+(autoload 'jde-mode "jde" "JDE mode" t)
+(setq auto-mode-alist
+      (append '(("\\.java\\'" . jde-mode)) auto-mode-alist))
 
 ;; ]
 
 ;; [ dired
 
-;; make dired use find-alternate-file instead of standard dired-find-file 
-;; this way the one single dired buffer is reused when new directories are
-;; found
-;;
+;; make dired reuse current buffer when opening new directories via keyboard
+
 (put 'dired-find-alternate-file 'disabled nil)
 
-;; prevent new buffer creation when going up in the directory tree
-;;
 (add-hook 'dired-mode-hook
- (lambda ()
-  (define-key dired-mode-map (kbd "^")
-    (lambda () (interactive) (find-alternate-file "..")))
-  ; was dired-up-directory
- ))
+	  (lambda ()
+	    (define-key dired-mode-map (kbd "^")
+	      (lambda () (interactive) (find-alternate-file "..")))
+					; was dired-up-directory
+	    )
+	  )
+
 
 ;; ]
+
 
