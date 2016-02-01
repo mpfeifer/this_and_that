@@ -30,8 +30,8 @@
 (require 'package)
 
 (setq package-archives '(("melpa" . "http://melpa.org/packages/"))
-	  package-enable-at-startup nil
-	  package-user-dir "~/.emacs.d/packages/")
+      package-enable-at-startup nil
+      package-user-dir "~/.emacs.d/packages/")
 
 (package-initialize)
 
@@ -39,7 +39,7 @@
   "Install PACKAGE if it has not yet been installed."
   (interactive "SPackage:")
   (if (package-installed-p package)
-	  nil
+      nil
     (package-install package)))
 
 (mp/install-package 'use-package)
@@ -47,7 +47,7 @@
 (require 'use-package)
 
 (setq use-package-verbose t
-	  use-package-always-ensure t)
+      use-package-always-ensure t)
 
 
 ;; ]
@@ -67,8 +67,8 @@
 (add-to-list 'load-path "~/.emacs.d/lib/")
 
 (setq scroll-step 1
-	  scroll-conservatively 10000
-	  auto-window-vscroll nil)
+      scroll-conservatively 10000
+      auto-window-vscroll nil)
 
 (setq gc-cons-threshold 50000000)
 
@@ -90,7 +90,7 @@
   "Save region (if active) to kill-ring before starting isearch. This way region
 can be inserted into isearch easily with C-y."
   (when (region-active-p)
-	(kill-ring-save (region-beginning) (region-end))))
+    (kill-ring-save (region-beginning) (region-end))))
 
 ;; ]
 
@@ -118,44 +118,44 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
         (delete-char -1)           ; delete the last ')'
         (call-interactively yas-expand))))
 
-(setq auto-insert-directory "~/.emacs.d/templates/"
-      auto-insert-query nil
-      auto-insert-alist (quote
-						 (
-						  (("pom.xml//'" . "Maven Project Object Model") . ["template-pom.xml" mp/yas-preprocessor])
-						  (("Activator.java" . "OSGI BundleActivator") . "Activator.java")
-						  (("\\.html\\'" . "HTML Skeleton")
-						   "<html>" > \n
-						   "<head>" > \n
-						   "<meta charset=\"utf-8\" />" > \n
-						   "<title></title>" > \n
-						   "<link rel=\"stylesheet\" type=\"text/css\" href=\"" (file-name-sans-extension (buffer-name)) ".css\" />" > \n
-						   "<script src=\"http://code.jquery.com/jquery-1.11.1.js\"></script>" > \n
-						   "<script src=\"" (file-name-sans-extension (buffer-name)) ".js\"></script>" > \n
-						   "</head>" > \n
-						   "<body>" \n > 
-						   _ > \n
-						   "</body>" > \n
-						   "</html>" > \n)
-						  (("\\.java\\'" . "Java") . ["template.java" mp/yas-preprocessor])
-						  (("\\.xml\\'" . "XML") . ["template.xml" mp/yas-preprocessor])
-						  (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor])
-						  (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])
-						  (("\\.\\([Hh]\\|hh\\|hpp\\)\\'" . "C++ header")
-						   (upcase
-							(concat
-							 (file-name-sans-extension (buffer-name))
-							 "_"
-							 (file-name-extension buffer-file-name)))
-						   > "#ifndef " str \n
-						   > "#define " str "\n\n"
-						   > "class " (file-name-sans-extension (buffer-name)) " {\n"
-						   "public:" "\n"
-						   > (file-name-sans-extension (buffer-name)) "();\n"
-						   > "virtual ~" (file-name-sans-extension (buffer-name)) "();\n"
-						   "};" _
-						   "\n\n"
-						   > "#endif") ) ) )
+  (setq auto-insert-directory "~/.emacs.d/templates/"
+	auto-insert-query nil
+	auto-insert-alist (quote
+			   (
+			    (("pom.xml//'" . "Maven Project Object Model") . ["template-pom.xml" mp/yas-preprocessor])
+			    (("Activator.java" . "OSGI BundleActivator") . "Activator.java")
+			    (("\\.html\\'" . "HTML Skeleton")
+			     "<html>" > \n
+			     "<head>" > \n
+			     "<meta charset=\"utf-8\" />" > \n
+			     "<title></title>" > \n
+			     "<link rel=\"stylesheet\" type=\"text/css\" href=\"" (file-name-sans-extension (buffer-name)) ".css\" />" > \n
+			     "<script src=\"http://code.jquery.com/jquery-1.11.1.js\"></script>" > \n
+			     "<script src=\"" (file-name-sans-extension (buffer-name)) ".js\"></script>" > \n
+			     "</head>" > \n
+			     "<body>" \n > 
+			     _ > \n
+			     "</body>" > \n
+			     "</html>" > \n)
+			    (("\\.java\\'" . "Java") . ["template.java" mp/yas-preprocessor])
+			    (("\\.xml\\'" . "XML") . ["template.xml" mp/yas-preprocessor])
+			    (("\\.css\\'" . "Cascading Stylesheets File") . ["template.css" mp/yas-preprocessor])
+			    (("\\.js\\'" . "Javascript Sourcecode") . ["template.js" mp/yas-preprocessor])
+			    (("\\.\\([Hh]\\|hh\\|hpp\\)\\'" . "C++ header")
+			     (upcase
+			      (concat
+			       (file-name-sans-extension (buffer-name))
+			       "_"
+			       (file-name-extension buffer-file-name)))
+			     > "#ifndef " str \n
+			     > "#define " str "\n\n"
+			     > "class " (file-name-sans-extension (buffer-name)) " {\n"
+			     "public:" "\n"
+			     > (file-name-sans-extension (buffer-name)) "();\n"
+			     > "virtual ~" (file-name-sans-extension (buffer-name)) "();\n"
+			     "};" _
+			     "\n\n"
+			     > "#endif") ) ) ) )
 
 (auto-insert-mode)
 
@@ -175,7 +175,9 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 (require 'hl-line)
 (global-hl-line-mode nil)
 
-(load-theme 'solarized-light)
+(use-package ample-zen-theme
+  :config
+  (load-theme 'ample-zen))
 
 ;; [ backups
 
@@ -190,9 +192,9 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 ;; [ imenu
 
 (setq imenu-auto-rescan t
-	  imenu-use-popup-menu nil
-	  imenu-space-replacement "-"
-	  imenu-sort-function 'imenu--sort-by-name)
+      imenu-use-popup-menu nil
+      imenu-space-replacement "-"
+      imenu-sort-function 'imenu--sort-by-name)
 
 ;; ] 
 
@@ -210,7 +212,7 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
   (interactive)
   (next-line)
   (if (>= (line-number-at-pos) 
-		  (- (count-lines (point-min) (point-max)) 1))
+	  (- (count-lines (point-min) (point-max)) 1))
       (goto-line 3)))
 
 (use-package ibuffer
@@ -219,13 +221,13 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
   (progn
     (setq ibuffer-show-empty-filter-groups nil)
     (add-hook 'ibuffer-mode-hook
-			  '(lambda ()
-				 (ibuffer-auto-mode 1)
-				 (ibuffer-switch-to-saved-filter-groups "standard")
-				 (define-key ibuffer-mode-map (kbd "p") 'ibuffer-previous-line)
-				 (define-key ibuffer-mode-map (kbd "C-p") 'ibuffer-previous-line)
-				 (define-key ibuffer-mode-map (kbd "n") 'ibuffer-next-line)
-				 (define-key ibuffer-mode-map (kbd "C-n") 'ibuffer-next-line)))))
+	      '(lambda ()
+		 (ibuffer-auto-mode 1)
+		 (ibuffer-switch-to-saved-filter-groups "standard")
+		 (define-key ibuffer-mode-map (kbd "p") 'ibuffer-previous-line)
+		 (define-key ibuffer-mode-map (kbd "C-p") 'ibuffer-previous-line)
+		 (define-key ibuffer-mode-map (kbd "n") 'ibuffer-next-line)
+		 (define-key ibuffer-mode-map (kbd "C-n") 'ibuffer-next-line)))))
 ;; ]
 
 ;; [ emacs lisp mode
@@ -274,8 +276,8 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 (setq savehist-save-minibuffer-history 1)
 (setq savehist-additional-variables
       '(kill-ring
-        search-ring
-        regexp-search-ring))
+	search-ring
+	regexp-search-ring))
 
 ;; ]
 
@@ -317,22 +319,22 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
   (define-key ac-menu-map (kbd "C-s") 'ac-isearch)
 
   (add-hook 'html-mode-hook '(lambda ()
-							   "Enable html auto-complete for html-mode."
-							   (require 'ac-html)
-							   (auto-complete-mode)
-							   (setq ac-sources '(ac-source-html-attribute-value
-												  'ac-source-html-tag
-												  'ac-source-html-attribute))))
+			       "Enable html auto-complete for html-mode."
+			       (require 'ac-html)
+			       (auto-complete-mode)
+			       (setq ac-sources '(ac-source-html-attribute-value
+						  'ac-source-html-tag
+						  'ac-source-html-attribute))))
 
   (defun mp/css-mode-hook ()
-	(setq ac-sources '(ac-source-css-property)))
+    (setq ac-sources '(ac-source-css-property)))
 
   (add-hook 'css-mode-hook' mp/css-mode-hook)
 
   (setq ac-sources '(ac-source-features ;; collects 'require-able features from the file sytem
-					 ac-source-functions
-					 ac-source-variables
-					 ac-source-symbols)))
+		     ac-source-functions
+		     ac-source-variables
+		     ac-source-symbols)))
 ;; ]
 
 ;; [ avy-mode
@@ -352,8 +354,8 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 ;; [ info browser
 
 (defadvice info (before
-				 info-browser-own-frame (&optional file-or-node buffer)
-				 activate)
+		 info-browser-own-frame (&optional file-or-node buffer)
+		 activate)
   "Open new frame for info browser."
   (let ((next-index 0))
     (while (get-buffer (format "info[%d]" next-index))
@@ -373,17 +375,17 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 
 ;;; (make-toggle-buffer buffer-name buffer-factory prefered-buffer-position)
 (global-set-key (kbd "<f4>") '(lambda () (interactive)
-								"Toggle calendar visibility"
-								(let ((calendar-window (get-buffer-window "*Calendar*")))
-								  (if calendar-window
-									  (delete-window calendar-window)
-									(calendar)))))
+				"Toggle calendar visibility"
+				(let ((calendar-window (get-buffer-window "*Calendar*")))
+				  (if calendar-window
+				      (delete-window calendar-window)
+				    (calendar)))))
 
 (setq calendar-mark-holidays-flag t
-	  calendar-date-style 'european
-	  calendar-view-diary-initially-flag t
-	  calendar-mark-diary-entries-flag t
-	  number-of-diary-entries 7)
+      calendar-date-style 'european
+      calendar-view-diary-initially-flag t
+      calendar-mark-diary-entries-flag t
+      number-of-diary-entries 7)
 (add-hook 'diary-display-hook 'fancy-diary-display)
 (add-hook 'today-visible-calendar-hook 'calendar-mark-today)
 
@@ -404,51 +406,51 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 ;; german holidays
 (setq holiday-general-holidays
       '((holiday-fixed 1 1 "Neujahr")
-		(holiday-fixed 5 1 "1. Mai")
-		(holiday-fixed 10 3 "Tag der Deutschen Einheit")))
+	(holiday-fixed 5 1 "1. Mai")
+	(holiday-fixed 10 3 "Tag der Deutschen Einheit")))
 
 (setq holiday-christian-holidays
       '((holiday-float 12 0 -4 "1. Advent")
-		(holiday-float 12 0 -3 "2. Advent")
-		(holiday-float 12 0 -2 "3. Advent")
-		(holiday-float 12 0 -1 "4. Advent")
-		(holiday-fixed 12 25 "1. Weihnachtstag")
-		(holiday-fixed 12 26 "2. Weihnachtstag")
-		(holiday-fixed 1 6 "Heilige Drei Könige")
-		;; Date of Easter calculation taken from holidays.el.
-		(let* ((century (1+ (/ displayed-year 100)))
-			   (shifted-epact (% (+ 14 (* 11 (% displayed-year 19))
-									(- (/ (* 3 century) 4))
-									(/ (+ 5 (* 8 century)) 25)
-									(* 30 century))
-								 30))
-			   (adjusted-epact (if (or (= shifted-epact 0)
-									   (and (= shifted-epact 1)
-											(< 10 (% displayed-year 19))))
-								   (1+ shifted-epact)
-								 shifted-epact))
-			   (paschal-moon (- (calendar-absolute-from-gregorian
-								 (list 4 19 displayed-year))
-								adjusted-epact))
-			   (easter (calendar-dayname-on-or-before 0 (+ paschal-moon 7))))
-		  (filter-visible-calendar-holidays
-		   (mapcar
-			(lambda (l)
-			  (list (calendar-gregorian-from-absolute (+ easter (car l)))
-					(nth 1 l)))
-			'(
-			  (-48 "Rosenmontag")
-			  ( -2 "Karfreitag")
-			  ( 0 "Ostersonntag")
-			  ( +1 "Ostermontag")
-			  (+39 "Christi Himmelfahrt")
-			  (+49 "Pfingstsonntag")
-			  (+50 "Pfingstmontag")
-			  (+60 "Fronleichnam")))))
-		(holiday-fixed 8 15 "Mariä Himmelfahrt")
-		(holiday-fixed 11 1 "Allerheiligen")
-		(holiday-float 11 3 1 "Buß- und Bettag" 16)
-		(holiday-float 11 0 1 "Totensonntag" 20)))
+	(holiday-float 12 0 -3 "2. Advent")
+	(holiday-float 12 0 -2 "3. Advent")
+	(holiday-float 12 0 -1 "4. Advent")
+	(holiday-fixed 12 25 "1. Weihnachtstag")
+	(holiday-fixed 12 26 "2. Weihnachtstag")
+	(holiday-fixed 1 6 "Heilige Drei Könige")
+	;; Date of Easter calculation taken from holidays.el.
+	(let* ((century (1+ (/ displayed-year 100)))
+	       (shifted-epact (% (+ 14 (* 11 (% displayed-year 19))
+				    (- (/ (* 3 century) 4))
+				    (/ (+ 5 (* 8 century)) 25)
+				    (* 30 century))
+				 30))
+	       (adjusted-epact (if (or (= shifted-epact 0)
+				       (and (= shifted-epact 1)
+					    (< 10 (% displayed-year 19))))
+				   (1+ shifted-epact)
+				 shifted-epact))
+	       (paschal-moon (- (calendar-absolute-from-gregorian
+				 (list 4 19 displayed-year))
+				adjusted-epact))
+	       (easter (calendar-dayname-on-or-before 0 (+ paschal-moon 7))))
+	  (filter-visible-calendar-holidays
+	   (mapcar
+	    (lambda (l)
+	      (list (calendar-gregorian-from-absolute (+ easter (car l)))
+		    (nth 1 l)))
+	    '(
+	      (-48 "Rosenmontag")
+	      ( -2 "Karfreitag")
+	      ( 0 "Ostersonntag")
+	      ( +1 "Ostermontag")
+	      (+39 "Christi Himmelfahrt")
+	      (+49 "Pfingstsonntag")
+	      (+50 "Pfingstmontag")
+	      (+60 "Fronleichnam")))))
+	(holiday-fixed 8 15 "Mariä Himmelfahrt")
+	(holiday-fixed 11 1 "Allerheiligen")
+	(holiday-float 11 3 1 "Buß- und Bettag" 16)
+	(holiday-float 11 0 1 "Totensonntag" 20)))
 
 ;;(setq calendar-holidays
 ;;      (append general-holidays local-holidays other-holidays
@@ -466,7 +468,7 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 (require 'ob-plantuml)
 
 (setq dot.exe "C:\\graphviz\\bin\\dot.exe"
-	  org-plantuml-jar-path "C:\\java\\lib\\plantuml.jar")
+      org-plantuml-jar-path "C:\\java\\lib\\plantuml.jar")
 
 (setq org-ellipsis "…")  ;; ⤵, ▼, ↴, ⬎, ⤷, ⋱
 
@@ -488,17 +490,17 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 (defsubst mp/toggle-prodigy-buffer ()
   (interactive)
   (if (string= (buffer-name) "*prodigy*")
-	  (quit-window)
-	(prodigy)))
+      (quit-window)
+    (prodigy)))
 
 (use-package prodigy
   :config
   (global-set-key (kbd "<f5>") 'mp/toggle-prodigy-buffer)
   (prodigy-define-service
-    :name "Echo Server"
-    :command "mvn"
-    :args '("exec:java -DmainClass=\"EchoServer-1.0.jar\"")
-    :cwd "/home/user/java/EchoServer/" ) )
+   :name "Echo Server"
+   :command "mvn"
+   :args '("exec:java -DmainClass=\"EchoServer-1.0.jar\"")
+   :cwd "/home/user/java/EchoServer/" ) )
 
 ;; ]
 
@@ -520,8 +522,8 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 (fset 'perl-mode 'cperl-mode)
 
 (add-hook 'cperl-mode-hook '(lambda ()
-							  (interactive)
-							  (local-set-key (kbd "C-h f") 'cperl-perldoc-at-point)))
+			      (interactive)
+			      (local-set-key (kbd "C-h f") 'cperl-perldoc-at-point)))
 
 ;; ]
 
@@ -555,19 +557,19 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
   (interactive)
   (let ((numWindows (length (window-list))))
     (if (string= (buffer-name) eshell-buffer-name)
-		;; Current buffer is eshell buffer. Lets close it.
-		(if (eq 1 numWindows)
-			(delete-frame)
-		  (delete-window))
+	;; Current buffer is eshell buffer. Lets close it.
+	(if (eq 1 numWindows)
+	    (delete-frame)
+	  (delete-window))
       (if (eq 1 numWindows)
-		  ;; Current buffer is not an eshell buffer. Lets start one.
-		  (let ((newwindow (split-window nil eshell-window-height)))
-			(select-window newwindow)
-			(eshell)
-			)
-		(progn
-		  (select-frame (make-frame))
-		  (eshell))))))
+	  ;; Current buffer is not an eshell buffer. Lets start one.
+	  (let ((newwindow (split-window nil eshell-window-height)))
+	    (select-window newwindow)
+	    (eshell)
+	    )
+	(progn
+	  (select-frame (make-frame))
+	  (eshell))))))
 
 (global-set-key (kbd "<f7>") 'mp/eshell)
 
@@ -623,12 +625,12 @@ exit eshell with this function instead."
 (winner-mode)
 
 (add-hook 'kill-emacs-hook #'(lambda ()
-							   "Store window configuration in filesystem."
-							   (interactive)
-							   (frame-configuration-to-register ?w)
-							   (with-temp-buffer
-								 (insert (prin1-to-string (get-register ?w)))
-								 (write-region (point-min) (point-max) mp/frame-configuration-file))))
+			       "Store window configuration in filesystem."
+			       (interactive)
+			       (frame-configuration-to-register ?w)
+			       (with-temp-buffer
+				 (insert (prin1-to-string (get-register ?w)))
+				 (write-region (point-min) (point-max) mp/frame-configuration-file))))
 
 (defun mp/detach-window ()
   "Iff current frame hosts at least two windows, close current window
@@ -636,8 +638,8 @@ and display corresponding buffer in new frame."
   (interactive)
   (if (not (one-window-p))
       (let ((buffer (current-buffer)))
-		(delete-window)
-		(display-buffer-pop-up-frame buffer nil))
+	(delete-window)
+	(display-buffer-pop-up-frame buffer nil))
     (message "Refusing to detach window when one-window-p is true.")))
 
 (defun split-window-below-select ()
@@ -693,33 +695,33 @@ and display corresponding buffer in new frame."
 
 ;; [ java mode
 
-(defvar mp/jde-autoloaded nil "Wether or not jdee has already been autoloaded.")
+;; (defvar mp/jde-autoloaded nil "Wether or not jdee has already been autoloaded.")
 
-(eval-when-compile
-	(setq jdee-path "~/.emacs.d/jdee-2.4.1/lisp")
-	(add-to-list 'load-path jdee-path)
-  (require 'jde))
+;; (eval-when-compile
+;;   (setq jdee-path "~/.emacs.d/jdee-2.4.1/lisp")
+;;   (add-to-list 'load-path jdee-path)
+;;   (require 'jde))
 
-(defun mp/jde-autoloader ()
-  "- delayed auto-loading for jde"
-  (when (not mp/jde-autoloaded)
-	(setq mp/jde-autoloaded t)
-	(setq jdee-path "~/.emacs.d/jdee-2.4.1/lisp")
-	(add-to-list 'load-path jdee-path)
-	(autoload 'jde-mode "jde" "JDE mode" t))
-  (jde-mode))
+;; (defun mp/jde-autoloader ()
+;;   "- delayed auto-loading for jde"
+;;   (when (not mp/jde-autoloaded)
+;;     (setq mp/jde-autoloaded t)
+;;     (setq jdee-path "~/.emacs.d/jdee-2.4.1/lisp")
+;;     (add-to-list 'load-path jdee-path)
+;;     (autoload 'jde-mode "jde" "JDE mode" t))
+;;   (jde-mode))
 
-(setq auto-mode-alist
-      (append '(("\\.java\\'" . mp/jde-autoloader)) auto-mode-alist))
+;; (setq auto-mode-alist
+;;       (append '(("\\.java\\'" . mp/jde-autoloader)) auto-mode-alist))
 
 ;; ]
 
 ;; [ dired
 
 (add-hook 'dired-mode-hook
-		  (lambda ()
-			(define-key dired-mode-map (kbd "<backspace>")
-			  (lambda () (interactive) (find-alternate-file "..")))))
+	  (lambda ()
+	    (define-key dired-mode-map (kbd "<backspace>")
+	      (lambda () (interactive) (find-alternate-file "..")))))
 
 ;; ]
 
@@ -732,12 +734,12 @@ and display corresponding buffer in new frame."
 (require 'nxml-mode)
 
 (add-to-list 'hs-special-modes-alist
-             '(nxml-mode
-               "<!--\\|<[^/>]*[^/]>"
-               "-->\\|</[^/>]*[^/]>"
-               "<!--"
-               sgml-skip-tag-forward
-               nil))
+	     '(nxml-mode
+	       "<!--\\|<[^/>]*[^/]>"
+	       "-->\\|</[^/>]*[^/]>"
+	       "<!--"
+	       sgml-skip-tag-forward
+	       nil))
 
 (add-hook 'nxml-mode-hook 'hs-minor-mode)
 
@@ -745,7 +747,7 @@ and display corresponding buffer in new frame."
 (define-key nxml-mode-map (kbd "C-c h") 'hs-toggle-hiding)
 
 (defun mp/nxml-mode-setup ()
-;;  (local-set-key (kbd "<") '(lambda () (interactive) (insert "<") (yas-expand))))
+  (local-set-key (kbd "<") '(lambda () (interactive) (insert "<") (yas-expand))))
 
 (add-hook 'nxml-mode-hook 'mp/nxml-mode-setup)
 
@@ -756,9 +758,9 @@ and display corresponding buffer in new frame."
 (defun mp/maven-integration ()
   (interactive)
   (when (string= "pom.xml" (buffer-name))
-	(progn
-	  (setq compile-command "mvn clean install")
-	  (local-set-key (kbd "C-c C-c") 'compile))))
+    (progn
+      (setq compile-command "mvn clean install")
+      (local-set-key (kbd "C-c C-c") 'compile))))
 
 (add-hook 'nxml-mode-hook 'mp/maven-integration)
 
@@ -767,7 +769,7 @@ and display corresponding buffer in new frame."
 ;; [ ido-mode
 
 (setq ido-enable-flex-matching t
-	  ido-use-filename-at-point 'guess)
+      ido-use-filename-at-point 'guess)
 
 (ido-mode t)
 (ido-everywhere)
@@ -798,7 +800,7 @@ and display corresponding buffer in new frame."
 
 (defun mp/store-lot-position ()
   (point-to-register ?z))
-  
+
 (defun mp/goto-lot-position ()
   (interactive)
   (jump-to-register ?z))
@@ -814,8 +816,8 @@ and display corresponding buffer in new frame."
 (defun mp/occur-mark-regexp ()
   (interactive)
   (when (not mp/occur-marked-regexp)
-	(setq mp/occur-origin-buffer (current-buffer))
-	(highlight-regexp mp/occur-last-regexp)))
+    (setq mp/occur-origin-buffer (current-buffer))
+    (highlight-regexp mp/occur-last-regexp)))
 
 (defun mp/occur-next-line ()
   (interactive)
@@ -838,9 +840,9 @@ and display corresponding buffer in new frame."
   (quit-window)
   (unhighlight-regexp mp/occur-last-regexp)
   (setq mp/occur-marked-regexp nil
-		mp/occur-last-regexp nil
-		mp/occur-origin-buffer nil))
-  
+	mp/occur-last-regexp nil
+	mp/occur-origin-buffer nil))
+
 (global-set-key (kbd "C-o") 'occur)
 
 (defvar mp/occur-marked-regexp nil)
@@ -850,8 +852,8 @@ and display corresponding buffer in new frame."
 (defadvice occur (after select-occur-window-after-occur activate)
   "Do make *Occur* buffer current after calling occur."
   (let ((occur-window (get-buffer-window "*Occur*")))
-	(when occur-window
-	  (select-window occur-window)))
+    (when occur-window
+      (select-window occur-window)))
   (setq mp/occur-last-regexp (concat (car regexp-history) ".*")))
 
 (defun mp/occur-mode-hook ()
@@ -862,3 +864,5 @@ and display corresponding buffer in new frame."
 (add-hook 'occur-mode-hook 'mp/occur-mode-hook)
 
 ;; ]
+
+;; TODO: create directories: various and auto-save
