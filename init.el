@@ -70,7 +70,7 @@
 	  scroll-conservatively 10000
 	  auto-window-vscroll nil)
 
-(setq gc-cons-threshold 20000000)
+(setq gc-cons-threshold 50000000)
 
 (server-start)
 
@@ -116,7 +116,7 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
         (delete-char 6)            ; delete '$(yas ' prefix
         (forward-char (- me mb 6)) ; go to the end of the match
         (delete-char -1)           ; delete the last ')'
-        (yas-expand)))))
+        (call-interactively yas-expand))))
 
 (setq auto-insert-directory "~/.emacs.d/templates/"
       auto-insert-query nil
@@ -150,11 +150,10 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 						   > "#ifndef " str \n
 						   > "#define " str "\n\n"
 						   > "class " (file-name-sans-extension (buffer-name)) " {\n"
-						   > "public:" "\n"
+						   "public:" "\n"
 						   > (file-name-sans-extension (buffer-name)) "();\n"
 						   > "virtual ~" (file-name-sans-extension (buffer-name)) "();\n"
-						   _
-						   > "};"
+						   "};" _
 						   "\n\n"
 						   > "#endif") ) ) )
 
@@ -252,6 +251,7 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
     (mp/dotemacs-mode-hook)
     )
   (local-set-key (kbd "C-c C-c") 'byte-compile-current-buffer)
+  (electric-pair-mode)
   ) 
 
 (add-hook 'emacs-lisp-mode-hook 'mp/emacs-lisp-mode-hook)
@@ -723,9 +723,35 @@ and display corresponding buffer in new frame."
 
 ;; ]
 
-;; [ xml mode
+;; [ xml editin
 
 ;; handy: (nxml-balanced-close-start-tag-inline)
+
+(require 'hideshow)
+(require 'sgml-mode)
+(require 'nxml-mode)
+
+(add-to-list 'hs-special-modes-alist
+             '(nxml-mode
+               "<!--\\|<[^/>]*[^/]>"
+               "-->\\|</[^/>]*[^/]>"
+               "<!--"
+               sgml-skip-tag-forward
+               nil))
+
+(add-hook 'nxml-mode-hook 'hs-minor-mode)
+
+;; optional key bindings, easier than hs defaults
+(define-key nxml-mode-map (kbd "C-c h") 'hs-toggle-hiding)
+
+(defun mp/nxml-mode-setup ()
+;;  (local-set-key (kbd "<") '(lambda () (interactive) (insert "<") (yas-expand))))
+
+(add-hook 'nxml-mode-hook 'mp/nxml-mode-setup)
+
+;; ]
+
+;; [ maven integration
 
 (defun mp/maven-integration ()
   (interactive)
@@ -734,10 +760,6 @@ and display corresponding buffer in new frame."
 	  (setq compile-command "mvn clean install")
 	  (local-set-key (kbd "C-c C-c") 'compile))))
 
-(defun mp/nxml-mode-setup ()
-  (local-set-key (kbd "<") '(lambda () (interactive) (insert "<") (yas-expand))))
-
-(add-hook 'nxml-mode-hook 'mp/nxml-mode-setup)
 (add-hook 'nxml-mode-hook 'mp/maven-integration)
 
 ;; ]
