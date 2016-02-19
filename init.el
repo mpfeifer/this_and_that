@@ -8,7 +8,7 @@
 
 ;; [ personal information
 
-(setq user-full-name "Matthias Pfeifer"
+(setq user-full-name "Matthias"
       user-mail-address "mpfeifer77@gmail.com")
 
 ;; ]
@@ -19,11 +19,31 @@
 
 (load custom-file)
 
+
+;; check if various and auto-save directories are available
+;; if not just create them
+
+(let* ((emacs-dir (concat (getenv "HOME") "/.emacs.d/"))
+       (various-dir (concat emacs-dir "various/"))
+       (autosave-dir (concat emacs-dir "auto-save/")))
+  (progn
+    (when (not (file-exists-p various-dir))
+      (make-directory various-dir))
+    (when (not (file-exists-p autosave-dir))
+      (make-directory autosave-dir))))
+
 ;; quiet reference to free variable warnings
 
 (defvar Man-mode-map)
 
 ;; ]
+
+;; [ recentf
+
+(recentf-mode 1)
+
+;; ]
+
 
 ;; [ packaging
 
@@ -164,6 +184,7 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 ;; [ appearence
 
 (when window-system
+  (horizontal-scroll-bar-mode -1)
   (tool-bar-mode -1)
   (menu-bar-mode 1)
   (tooltip-mode -1)
@@ -175,9 +196,21 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 (require 'hl-line)
 (global-hl-line-mode nil)
 
-(use-package ample-zen-theme
-  :config
-  (load-theme 'ample-zen))
+(defconst mp/light-theme 0)
+(defconst mp/dark-theme 1)
+(defvar current-theme mp/dark-theme)
+(defvar mp/pref-light-theme 'light-blue)
+(defvar mp/pref-dark-theme 'foggy-night)
+
+(if (eq current-theme mp/light-theme)
+    (progn
+      (setq current-theme mp/dark-theme)
+      (load-theme mp/pref-dark-theme))
+  (progn
+    (setq current-theme mp/light-theme)
+    (load-theme mp/pref-light-theme)
+    ;; make hl-line background color have more contrast
+    (set-face-background 'hl-line "cyan")))
 
 ;; [ backups
 
@@ -320,12 +353,12 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
 
   (add-hook 'html-mode-hook '(lambda ()
 			       "Enable html auto-complete for html-mode."
-			       (require 'ac-html)
+			       ;;			       (require 'ac-html)
 			       (auto-complete-mode)
-			       (setq ac-sources '(ac-source-html-attribute-value
-						  'ac-source-html-tag
-						  'ac-source-html-attribute))))
-
+			       ;;			       (setq ac-sources '(ac-source-html-attribute-value
+			       ;;						  'ac-source-html-tag
+			       ;;						  'ac-source-html-attribute))
+			       ))
   (defun mp/css-mode-hook ()
     (setq ac-sources '(ac-source-css-property)))
 
@@ -497,17 +530,23 @@ Snippets are actually expanded - but positions ($0, $1, etc.) are not respected.
   :config
   (global-set-key (kbd "<f5>") 'mp/toggle-prodigy-buffer)
   (prodigy-define-service
-   :name "Echo Server"
-   :command "mvn"
-   :args '("exec:java -DmainClass=\"EchoServer-1.0.jar\"")
-   :cwd "/home/user/java/EchoServer/" ) )
+    :name "Echo Server"
+    :command "mvn"
+    :args '("exec:java -DmainClass=\"EchoServer-1.0.jar\"")
+    :cwd "/home/user/java/EchoServer/" ) )
 
 ;; ]
 
 ;; [ speedbar
 
 (use-package sr-speedbar
-  :bind ("<f6>" . sr-speedbar-toggle) )
+  :bind ("<f6>" . sr-speedbar-toggle) 
+  :config
+  (define-key speedbar-file-key-map (kbd "C-j") 'speedbar-expand-line)
+  (define-key speedbar-file-key-map (kbd "C-k") 'speedbar-contract-line)
+  (defadvice sr-speedbar-toggle (after select-speedbar activate)
+    (let ((window (get-buffer-window "*SPEEDBAR*")))
+      (when window (select-window window)))))
 
 ;; ]
 
@@ -695,24 +734,7 @@ and display corresponding buffer in new frame."
 
 ;; [ java mode
 
-;; (defvar mp/jde-autoloaded nil "Wether or not jdee has already been autoloaded.")
-
-;; (eval-when-compile
-;;   (setq jdee-path "~/.emacs.d/jdee-2.4.1/lisp")
-;;   (add-to-list 'load-path jdee-path)
-;;   (require 'jde))
-
-;; (defun mp/jde-autoloader ()
-;;   "- delayed auto-loading for jde"
-;;   (when (not mp/jde-autoloaded)
-;;     (setq mp/jde-autoloaded t)
-;;     (setq jdee-path "~/.emacs.d/jdee-2.4.1/lisp")
-;;     (add-to-list 'load-path jdee-path)
-;;     (autoload 'jde-mode "jde" "JDE mode" t))
-;;   (jde-mode))
-
-;; (setq auto-mode-alist
-;;       (append '(("\\.java\\'" . mp/jde-autoloader)) auto-mode-alist))
+;; jdee is now in elpa...
 
 ;; ]
 
@@ -807,7 +829,7 @@ and display corresponding buffer in new frame."
 
 (add-hook 'post-self-insert-hook 'mp/store-lot-position)
 
-(global-set-key (kbd "C-c q") 'mp/goto-lot-position)
+(global-set-key (kbd "C-c 1") 'mp/goto-lot-position)
 
 ;; ]
 
@@ -865,4 +887,11 @@ and display corresponding buffer in new frame."
 
 ;; ]
 
-;; TODO: create directories: various and auto-save
+
+(put 'narrow-to-region 'disabled nil)
+
+;; [ python
+(setq jedi:complete-on-dot t)
+;;(setq jedi:server-command '("C:/Users/mpfeifer/AppData/Roaming/.emacs.d/packages/jedi-core-20151214.705/jediepcserver.py"))
+
+;; ]
