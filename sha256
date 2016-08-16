@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+
+import hashlib
+import sys
+
+def read_in_chunks(file_object, chunk_size=4096):
+    """Lazy function (generator) to read a file piece by piece.
+    Default chunk size: 4k."""
+    while True:
+        data = file_object.read(chunk_size)
+        if not data:
+            break
+        yield data
+
+sha = hashlib.sha512()
+
+f = open(sys.argv[1], "rb")
+
+for chunk in read_in_chunks(f):
+    sha.update(chunk)
+
+print(sha.hexdigest() + " " + sys.argv[1])
+
