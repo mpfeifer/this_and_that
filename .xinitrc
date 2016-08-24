@@ -17,6 +17,7 @@ trap "exec $failsafe" EXIT SIGHUP SIGINT SIGPIPE SIGTERM SIGIO
 set +e > /dev/null 2>&1
 set +u > /dev/null 2>&1
 set +o posix  > /dev/null 2>&1
+
 if type shopt > /dev/null 2>&1 ; then
     shopt -s execfail
 else
@@ -40,7 +41,7 @@ fi
 # Add your own lines here...
 #
 
-xrandr --output HDMI1 --auto --output HDMI2 --auto --left-of HDMI1
+xrandr --output HDMI-1 --auto --output HDMI-2 --auto --left-of HDMI-1
 
 emacs -geometry 131x44+1958+27 &
 
