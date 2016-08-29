@@ -54,6 +54,8 @@ xterm +sb -geometry ${SIZE}+1177+490 &
 
 firefox &
 
+xscreensaver &
+
 # 
 # finally start the window manager
 #
