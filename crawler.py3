@@ -8,62 +8,224 @@ import os
 import configparser
 import getopt
 import time
-import html.parser
+from html.parser import HTMLParser
 import urllib.request as req
 import urllib.error
+from urllib import parse
+from urllib.request import urlopen
+import hashlib
+import sys
+import re
+import time
 
+# TODO
+#   resolve host ips (if any)
+#   store data in memory (then in file...)
+#      data is
+#         url, links to (hashes), keywords, description, extracted keywords
+#   which data to collect
+#       description, keywords, top5 words from word histogram (minus
+#                       nonsense words like the, it, he, she, it, etc...)
+#   maybe use nltk for identifying nouns and verbs (www.nltk.org)
+#   draw nice chart for the web
+#   need to maintain state between runs (suspend, resume)
+#   want class derived from dict for the dictionary handling
 
+class CrawlerHtmlParser(HTMLParser):
 
-#Define HTML Parser
-class hrefExtractingParse(html.parser.HTMLParser):
+    """HTML Parser extracts href attribute values from a tags."""
 
-    def __init__(self):
-        self.urlText=[]
+    tld_file_name = "tld.txt"
+    tlds = None
 
-    def handle_starttag(self, tag, data):
+    stopwords_file_name = "ignore.txt"
+    stopwords = None
+
+    def __init__(self, app):
+        HTMLParser.__init__(self)
+        self.app=app
+        self.urls=[]
+        self.url_text=[]
+        self.base_url = None
+
+        # This is calculated from url content
+        self.histogram=None
+
+        # This is taken from url meta tag
+        self.keywords=None
+
+        # This is taken from url meta tag        
+        self.description=None
+
+        # This is taken from url meta tag
+        self.language=None
+
+        # This is taken from wall clock (in UTC)
+        # Watch out! time.altzone is only to be used
+        # When you have daylight saving?!
+        self.timestamp=time.time() - time.altzone
+        
+        if CrawlerHtmlParser.tlds == None:
+            CrawlerHtmlParser.tlds = []
+            tld_file = open(CrawlerHtmlParser.tld_file_name, "r")
+            for tld in tld_file:
+                CrawlerHtmlParser.tlds.append(tld)
+            tld_file.close()
+
+        if CrawlerHtmlParser.stopwords == None:
+            CrawlerHtmlParser.stopwords = []
+            stopwords_file = open(CrawlerHtmlParser.stopwords_file_name, "r")
+            for word in stopwords_file:
+                CrawlerHtmlParser.stopwords.append(tld)
+            stopwords_file.close()
+
+    def handle_data(self, data):
+        data = self.filter_stopwords(data.strip())
+        if (len(data) > 0):
+            self.url_text.append(data)
+        
+    def handle_starttag(self, tag, attributes):
         if tag == 'a':
-            for attrib in data:
-                key = attrib[0]
-                value = attrib[1]
+            for (key, value) in attributes:
                 if key == "href":
-                    self.urls.append(value)
+                    newUrl = parse.urljoin(self.base_url, value)
+                    self.urls.append(newUrl)
 
+    def filter_stopwords(self, data):
+        """ Remove all stopwords from data. """
+        for word in self.stopwords:
+            data = re.sub(word, "", data)
+        return data
+
+    def getLinks(self, url):
+        self.base_url = url
+        response = urlopen(url)
+        charset=self.guessCharset(response);
+        if (charset):
+            htmlBytes = response.read()
+            try:
+                htmlString = htmlBytes.decode(charset)
+            except UnicodeDecodeError:
+                htmlString = None
+            self.feed(htmlString)
+
+        if self.url_text:
+            self.calculate_keywords()
+
+        return self.urls
+
+    def guessCharset(self, response):
+        result=None
+        content_type=response.getheader('Content-Type').lower()
+        if (content_type == "text/html"):
+            result="utf-8"
+        else:
+            m = re.search('charset=(.*)', content_type)
+            if (m.lastindex == 1):
+                result=m.group(1)
+        self.app.log.debug("Guessing charset for url {}: {}".format(self.base_url, result))
+        return result
+
+    def calculate_keywords(self):
+
+        self.histogram = {}
+        self.keywords = []
+
+        for phrase in self.url_text:
+            words = phrase.split()
+            for word in words:
+                if word in self.histogram:
+                    self.histogram[word]=self.histogram[word]+1
+                else:
+                    self.histogram[word]=1
+
+        for key in self.histogram.keys():
+            if len(self.keywords) >= 5:
+                break
+            val = self.histogram[key]
+            max_key=None
+            for comp_key in self.histogram.keys():
+                if comp_key in self.keywords:
+                    continue
+                else:
+                    comp_val = self.histogram[comp_key]
+                    if (comp_val > val):
+                        val = comp_val
+                        max_key = comp_key
+            if max_key:
+                self.keywords.append(comp_key)
+
+        self.app.log.info("histogram = {}".format(self.histogram))
+        self.app.log.info("Keywords = {}".format(self.keywords))
+        
+    def getKeywords(self):
+        return self.keywords
+    
+    def getDescription(self):
+        return self.description
+
+    def getLanguage(self):
+        return self.language
+    
+    def getTimestamp(self):
+        return self.timestamp
+
+class UrlExtract():
+
+    """Helper class to host data extracted from a url."""
+
+    def __init__(self, hashval="", url="", keys=[], desc="", lang="", timestamp=None):
+        self.hashval=hashval
+        self.url=url
+        self.keywords=keys
+        self.description=desc
+        self.language=lang
+        self.timestamp=timestamp
+
+    def copy_from_parser(self, lParser):
+        self.keywords=lParser.getKeywords()
+        self.description=lParser.getDescription()
+        self.language=lParser.getLanguage()
+        self.timestamp=lParser.getTimestamp()
+        
 class Application:
-    name               = 'template'
+    name               = 'web crawler'
     version            = '0.1'
     def __init__(self):
+        self.starting_url  = "http://www.dmoz.org"
         self.loghost_port  = logging.handlers.DEFAULT_TCP_LOGGING_PORT
         self.loghost_name  = 'localhost'
-        self.logdomain     = 'template.py'
-        self.usage_string  = 'Usage: this-script.py [inifile] -h -v -p <numeric> -l <hostname> -r\r\n\r\n'
+        self.logdomain     = 'net.crawler'
+        self.usage_string  = 'Usage: crawler.py3 [inifile] -h -v -p <numeric> -l <hostname> -u <url> -r\r\n\r\n'
         self.usage_string+=' [inifile]  if inifile is set it is read before commandline switches\r\n'
-        self.usage_string+='    -h      print usage string\r\n'
-        self.usage_string+='    -l      set remote logging host (this enables remote logging)\r\n'
-        self.usage_string+='    -p      set remote logging port (this enables remote logging)\r\n'
-        self.usage_string+='    -r      enabled remote logging\r\n'
-        self.usage_string+='    -v      be more verbose\r\n'
+        self.usage_string+='    -h          print usage string\r\n'
+        self.usage_string+='    -l hostname set remote logging host (this enables remote logging)\r\n'
+        self.usage_string+='    -p num      set remote logging port (this enables remote logging)\r\n'
+        self.usage_string+='    -r          enabled remote logging\r\n'
+        self.usage_string+='    -v          be more verbose\r\n'
+        self.usage_string+='    -u url      starting url\r\n'
         self.usage_string+='\r\nIf remote logging is enabled in inifile it cannot be disabled via commandline.\r\n'
         self.usage_string+='{} version {}'.format(Application.name, Application.version)
-        self.inifile       = None
-        self.inifile_name  = 'undefined'
+        self.inifile      = None
+        self.inifile_name = 'undefined'
         self.remote_logger_enabled = False
-        self.log_verbose = False
+        self.log_verbose  = False
         self.gather_parameter()
-        self.log           = self.get_logger()
+        self.log          = self.get_logger()
         self.log_configuration()
         signal.signal(signal.SIGINT, Application.signal_int_handler)        
 
 
     def log_configuration(self):
-        self.log.debug("%28s = %s", "Application.name", Application.name)
-        self.log.debug("%28s = %s", "version", Application.version)
-        self.log.debug("%28s = %s", "inifile_name", self.inifile_name)
-        self.log.debug("%28s = %s", "log", self.log)
-        self.log.debug("%28s = %s", "remote_logger_enabled", self.remote_logger_enabled)
-        self.log.debug("%28s = %s", "loghost_port", self.loghost_port)
-        self.log.debug("%28s = %s", "loghost_name", self.loghost_name)
+        self.log.info("%28s = %s", "Application.name", Application.name)
+        self.log.info("%28s = %s", "version", Application.version)
+        self.log.info("%28s = %s", "inifile_name", self.inifile_name)
+        self.log.info("%28s = %s", "log", self.log)
+        self.log.info("%28s = %s", "remote_logger_enabled", self.remote_logger_enabled)
+        self.log.info("%28s = %s", "loghost_port", self.loghost_port)
+        self.log.info("%28s = %s", "loghost_name", self.loghost_name)
+        self.log.info("%28s = %s", "starting_url", self.starting_url)
 
-        
     def get_logger(self):
         log = logging.getLogger(self.logdomain)
         formatstring='%(asctime)s %(levelname)-15s %(name)s # %(message)s'
@@ -81,9 +243,9 @@ class Application:
         log.setLevel(level)
         log.propagate=0
         return log
-
         
     def gather_parameter(self):
+
         '''Collect parameters from inifile (first) and then from commandline.'''
 
         first_getopt_index=1
@@ -103,7 +265,7 @@ class Application:
                 self.remote_logger_enabled=True
 
         try:
-            opts, args = getopt.getopt(sys.argv[first_getopt_index:], 'vhp:l:r', 'help')
+            opts, args = getopt.getopt(sys.argv[first_getopt_index:], 'vhp:l:ru:', 'help')
         except getop.GetoptError as err:
             print(err)
             self.usage()
@@ -121,6 +283,8 @@ class Application:
                 self.remote_logger_enabled = True
             elif option == '-v':
                 self.log_verbose = True
+            elif option == '-u':
+                self.starting_url = arg 
 
     def usage(self):
         print(self.usage_string)
@@ -133,25 +297,98 @@ class Application:
         exit(0)
 
     def run(self):
-        lParser = None
-        starturl = "http://www-rohan.sdsu.edu/~gawron/index.html"
-        try:
-            with req.urlopen(starturl) as response:
-                html = response.read().decode("utf-8")
-                lParser = hrefExtractingParse()
-                lParser.feed(html)
-                lParser.close()
-        except urllib.error.HTTPError as e:
-            print('Error code: ', e.code)
-        except urllib.error.URLError as e:
-            print('Reason: ', e.reason)
 
-        for url in lParserl.urls:
-            print(url)
+        lParser = None
+
+        # this variable is just a place holder and
+        # reused whenever urlparse return value has
+        # to be used
+        
+        parse_result = parse.urlparse(self.starting_url)
+
+        # this list holds the ParseResult values
+        # which are returned from urlparse
+        
+        url_list = [ parse_result ]
+
+        # holds hash values of visited urls and maps them to instances
+        # of class UrlExtract
+        
+        visited_urls = {}
+
+        # loop until the whole internet (reachable from starting url) is processed
+        
+        while url_list:
+            try:
+                next_parse_result = url_list.pop()
+                self.log.debug("Next parse result = {}".format(next_parse_result))
+                next_url=None
+                
+                if self.validate(next_parse_result):
+                    next_url = "http://" + next_parse_result.netloc
+                    if len(next_parse_result.path) > 1:
+                        next_url = next_url + next_parse_result.path
+                else:
+                    self.log.debug("Validation failed")
+                    continue
+
+                md5 = hashlib.md5()
+                md5.update(next_url.encode("utf-8"))
+                hash_val = md5.hexdigest()
+                self.log.debug("Processing {} with hash value {}".format(next_url, hash_val))
+
+                if hash_val not in visited_urls:
+                    self.log.info("Visiting {}".format(next_url))
+                    extract = UrlExtract(hash_val, next_url)
+                    visited_urls[hash_val] = extract
+                    lParser = CrawlerHtmlParser(self)
+                    urls = lParser.getLinks(next_url)
+                    lParser.close()
+                    extract.copy_from_parser(lParser)
+                    for url in urls:
+                        next_parse_result = parse.urlparse(url)
+                        url_list.append(next_parse_result)
+                else:
+                    self.log.info("Url was already visited")
+
+            except urllib.error.HTTPError as e:
+                self.log.info("HTTP-Error code {} received when processing url {}".format(e.code, next_url))
+                
+            except urllib.error.URLError as e:
+                self.log.info("URL-Error {} received when processing url {}".format(e.code, next_url))
+                
+            except:
+                self.log.info("Unexpected error when processing url {}".format(next_url))
+                raise
+            
+        self.log.info("No more urls to process.")
+
+    def validate(self, parse_result):
+        if parse_result.scheme != "http":
+            return False
+        if parse_result.netloc.endswith("aol.com"):
+            return False
+        if parse_result.netloc.startswith("advertising.aol.com"):
+            return False
+        if parse_result.netloc.startswith("www.facebook"):
+            return False
+        if parse_result.netloc.startswith("www.twitter"):
+            return False
+        if parse_result.netloc.startswith("www.flickr"):
+            return False
+        if parse_result.netloc.startswith("javascript:"):
+            return False
+        if parse_result.netloc.endswith("()"):
+            return False
+        if (len(parse_result.query) > 0):
+            return False
+        if (len(parse_result.path) > 128):
+            return False
+        return True
 
 def main():
     app = Application()
-    app.log.info('{} {} will be instantiated'.format(app.name, app.version))
+    app.log.info('{} {} is starting'.format(app.name, app.version))
     app.run()
     app.log.info('{} {} is done'.format(app.name, app.version))
 
