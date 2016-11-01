@@ -8,11 +8,15 @@ import os
 import configparser
 import getopt
 import time
+
 from html.parser import HTMLParser
+
 import urllib.request as req
 import urllib.error
+
 from urllib import parse
 from urllib.request import urlopen
+
 import hashlib
 import sys
 import re
@@ -42,7 +46,9 @@ class CrawlerHtmlParser(HTMLParser):
     stopwords = None
 
     def __init__(self, app):
+
         HTMLParser.__init__(self)
+
         self.app=app
         self.urls=[]
         self.url_text=[]
@@ -69,20 +75,26 @@ class CrawlerHtmlParser(HTMLParser):
             CrawlerHtmlParser.tlds = []
             tld_file = open(CrawlerHtmlParser.tld_file_name, "r")
             for tld in tld_file:
-                CrawlerHtmlParser.tlds.append(tld)
+                if not tld.startswith("#"):
+                    CrawlerHtmlParser.tlds.append(tld.strip().lower())
             tld_file.close()
+            self.app.log.debug("tld names were loaded: %s", CrawlerHtmlParser.tlds)
 
         if CrawlerHtmlParser.stopwords == None:
             CrawlerHtmlParser.stopwords = []
             stopwords_file = open(CrawlerHtmlParser.stopwords_file_name, "r")
             for word in stopwords_file:
-                CrawlerHtmlParser.stopwords.append(tld)
+                CrawlerHtmlParser.stopwords.append(word.strip().lower())
             stopwords_file.close()
+            self.app.log.debug("Stopwords were loaded: %s", CrawlerHtmlParser.stopwords)
 
     def handle_data(self, data):
-        data = self.filter_stopwords(data.strip())
-        if (len(data) > 0):
-            self.url_text.append(data)
+
+        processed_data=data.strip();
+        if (len(processed_data) > 0):
+            if processed_data.endswith("."):
+                processed_data = processed_data[:-1]
+            self.url_text.append(processed_data)
         
     def handle_starttag(self, tag, attributes):
         if tag == 'a':
@@ -90,12 +102,6 @@ class CrawlerHtmlParser(HTMLParser):
                 if key == "href":
                     newUrl = parse.urljoin(self.base_url, value)
                     self.urls.append(newUrl)
-
-    def filter_stopwords(self, data):
-        """ Remove all stopwords from data. """
-        for word in self.stopwords:
-            data = re.sub(word, "", data)
-        return data
 
     def getLinks(self, url):
         self.base_url = url
@@ -127,33 +133,35 @@ class CrawlerHtmlParser(HTMLParser):
         return result
 
     def calculate_keywords(self):
-
         self.histogram = {}
-        self.keywords = []
-
+        self.keywords = {}
         for phrase in self.url_text:
-            words = phrase.split()
+            words = re.split('\W+', phrase)
             for word in words:
+                word=word.lower()
+                if word in CrawlerHtmlParser.stopwords:
+                    continue
                 if word in self.histogram:
                     self.histogram[word]=self.histogram[word]+1
                 else:
                     self.histogram[word]=1
-
-        for key in self.histogram.keys():
+        for current_key in self.histogram:
+            if current_key in self.keywords:
+                continue
             if len(self.keywords) >= 5:
                 break
-            val = self.histogram[key]
-            max_key=None
+            current_value = self.histogram[current_key]
+            max_key=current_key
+            max_val=current_value
             for comp_key in self.histogram.keys():
-                if comp_key in self.keywords:
+                if comp_key in self.keywords or comp_key == current_key:
                     continue
-                else:
-                    comp_val = self.histogram[comp_key]
-                    if (comp_val > val):
-                        val = comp_val
-                        max_key = comp_key
+                comp_val = self.histogram[comp_key]
+                if (comp_val > max_val):
+                    max_val = comp_val
+                    max_key = comp_key
             if max_key:
-                self.keywords.append(comp_key)
+                self.keywords[max_key]=max_val
 
         self.app.log.info("histogram = {}".format(self.histogram))
         self.app.log.info("Keywords = {}".format(self.keywords))
@@ -189,8 +197,10 @@ class UrlExtract():
         self.timestamp=lParser.getTimestamp()
         
 class Application:
+
     name               = 'web crawler'
     version            = '0.1'
+
     def __init__(self):
         self.starting_url  = "http://www.dmoz.org"
         self.loghost_port  = logging.handlers.DEFAULT_TCP_LOGGING_PORT
@@ -199,6 +209,7 @@ class Application:
         self.usage_string  = 'Usage: crawler.py3 [inifile] -h -v -p <numeric> -l <hostname> -u <url> -r\r\n\r\n'
         self.usage_string+=' [inifile]  if inifile is set it is read before commandline switches\r\n'
         self.usage_string+='    -h          print usage string\r\n'
+        self.usage_string+='    -q filename be quiet and log to filename'
         self.usage_string+='    -l hostname set remote logging host (this enables remote logging)\r\n'
         self.usage_string+='    -p num      set remote logging port (this enables remote logging)\r\n'
         self.usage_string+='    -r          enabled remote logging\r\n'
@@ -212,6 +223,7 @@ class Application:
         self.log_verbose  = False
         self.gather_parameter()
         self.log          = self.get_logger()
+        self.logfile      = None
         self.log_configuration()
         signal.signal(signal.SIGINT, Application.signal_int_handler)        
 
@@ -224,6 +236,7 @@ class Application:
         self.log.info("%28s = %s", "remote_logger_enabled", self.remote_logger_enabled)
         self.log.info("%28s = %s", "loghost_port", self.loghost_port)
         self.log.info("%28s = %s", "loghost_name", self.loghost_name)
+        self.log.info("%28s = %s", "logfile", self.logfile)
         self.log.info("%28s = %s", "starting_url", self.starting_url)
 
     def get_logger(self):
@@ -233,8 +246,10 @@ class Application:
         handler = None
         if self.remote_logger_enabled:
             handler = logging.handlers.SocketHandler(self.loghost_name, self.loghost_port)
+        elif not self.logfile:
+            handler = logging.StreamHandler(sys.stdout)
         else:
-            handler = logging.StreamHandler(sys.stderr)
+            handler = logging.FileHandler(self.logfile)
         handler.setFormatter(formatter)
         log.addHandler(handler)
         level = logging.INFO
@@ -265,8 +280,8 @@ class Application:
                 self.remote_logger_enabled=True
 
         try:
-            opts, args = getopt.getopt(sys.argv[first_getopt_index:], 'vhp:l:ru:', 'help')
-        except getop.GetoptError as err:
+            opts, args = getopt.getopt(sys.argv[first_getopt_index:], 'vhp:l:ru:q:', 'help')
+        except getopt.GetoptError as err:
             print(err)
             self.usage()
 
@@ -285,6 +300,8 @@ class Application:
                 self.log_verbose = True
             elif option == '-u':
                 self.starting_url = arg 
+            elif option == '-q':
+                self.logfile = arg
 
     def usage(self):
         print(self.usage_string)
