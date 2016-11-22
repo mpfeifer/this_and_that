@@ -22,19 +22,6 @@ import sys
 import re
 import time
 
-# TODO
-#   resolve host ips (if any)
-#   store data in memory (then in file...)
-#      data is
-#         url, links to (hashes), keywords, description, extracted keywords
-#   which data to collect
-#       description, keywords, top5 words from word histogram (minus
-#                       nonsense words like the, it, he, she, it, etc...)
-#   maybe use nltk for identifying nouns and verbs (www.nltk.org)
-#   draw nice chart for the web
-#   need to maintain state between runs (suspend, resume)
-#   want class derived from dict for the dictionary handling
-
 class CrawlerHtmlParser(HTMLParser):
 
     """HTML Parser extracts href attribute values from a tags."""
@@ -45,15 +32,16 @@ class CrawlerHtmlParser(HTMLParser):
     stopwords_file_name = "ignore.txt"
     stopwords = None
 
-    def __init__(self, app):
+    def __init__(self):
 
         HTMLParser.__init__(self)
 
-        self.app=app
+        self.log=logging.getLogger("crawler.parser")
+        self.log.propagate = 1
         self.urls=[]
         self.url_text=[]
         self.base_url = None
-
+        
         # This is calculated from url content
         self.histogram=None
 
@@ -66,9 +54,6 @@ class CrawlerHtmlParser(HTMLParser):
         # This is taken from url meta tag
         self.language=None
 
-        # This is taken from wall clock (in UTC)
-        # Watch out! time.altzone is only to be used
-        # When you have daylight saving?!
         self.timestamp=time.time() - time.altzone
         
         if CrawlerHtmlParser.tlds == None:
@@ -78,7 +63,7 @@ class CrawlerHtmlParser(HTMLParser):
                 if not tld.startswith("#"):
                     CrawlerHtmlParser.tlds.append(tld.strip().lower())
             tld_file.close()
-            self.app.log.debug("tld names were loaded: %s", CrawlerHtmlParser.tlds)
+            self.log.debug("tld names were loaded: %s", CrawlerHtmlParser.tlds)
 
         if CrawlerHtmlParser.stopwords == None:
             CrawlerHtmlParser.stopwords = []
@@ -86,10 +71,9 @@ class CrawlerHtmlParser(HTMLParser):
             for word in stopwords_file:
                 CrawlerHtmlParser.stopwords.append(word.strip().lower())
             stopwords_file.close()
-            self.app.log.debug("Stopwords were loaded: %s", CrawlerHtmlParser.stopwords)
+            self.log.debug("Stopwords were loaded: %s", CrawlerHtmlParser.stopwords)
 
     def handle_data(self, data):
-
         processed_data=data.strip();
         if (len(processed_data) > 0):
             if processed_data.endswith("."):
@@ -114,22 +98,20 @@ class CrawlerHtmlParser(HTMLParser):
             except UnicodeDecodeError:
                 htmlString = None
             self.feed(htmlString)
-
         if self.url_text:
             self.calculate_keywords()
-
         return self.urls
 
     def guessCharset(self, response):
         result=None
         content_type=response.getheader('Content-Type').lower()
         if (content_type == "text/html"):
-            result="utf-8"
+            result="iso-8859-1"
         else:
             m = re.search('charset=(.*)', content_type)
             if (m.lastindex == 1):
                 result=m.group(1)
-        self.app.log.debug("Guessing charset for url {}: {}".format(self.base_url, result))
+        self.log.debug("Guessing charset for url {}: {}".format(self.base_url, result))
         return result
 
     def calculate_keywords(self):
@@ -144,7 +126,7 @@ class CrawlerHtmlParser(HTMLParser):
                 if word in self.histogram:
                     self.histogram[word]=self.histogram[word]+1
                 else:
-                    self.histogram[word]=1
+                    self.histogram[word]=1                    
         for current_key in self.histogram:
             if current_key in self.keywords:
                 continue
@@ -163,8 +145,8 @@ class CrawlerHtmlParser(HTMLParser):
             if max_key:
                 self.keywords[max_key]=max_val
 
-        self.app.log.info("histogram = {}".format(self.histogram))
-        self.app.log.info("Keywords = {}".format(self.keywords))
+        self.log.info("histogram = {}".format(self.histogram))
+        self.log.info("Keywords = {}".format(self.keywords))
         
     def getKeywords(self):
         return self.keywords
@@ -179,9 +161,7 @@ class CrawlerHtmlParser(HTMLParser):
         return self.timestamp
 
 class UrlExtract():
-
-    """Helper class to host data extracted from a url."""
-
+    """This class hosts the data, that was extracted from a url."""
     def __init__(self, hashval="", url="", keys=[], desc="", lang="", timestamp=None):
         self.hashval=hashval
         self.url=url
@@ -190,22 +170,20 @@ class UrlExtract():
         self.language=lang
         self.timestamp=timestamp
 
-    def copy_from_parser(self, lParser):
-        self.keywords=lParser.getKeywords()
-        self.description=lParser.getDescription()
-        self.language=lParser.getLanguage()
-        self.timestamp=lParser.getTimestamp()
+    def copy_from_parser(self, parser):
+        self.keywords=parser.getKeywords()
+        self.description=parser.getDescription()
+        self.language=parser.getLanguage()
+        self.timestamp=parser.getTimestamp()
         
 class Application:
-
     name               = 'web crawler'
     version            = '0.1'
-
     def __init__(self):
         self.starting_url  = "http://www.dmoz.org"
         self.loghost_port  = logging.handlers.DEFAULT_TCP_LOGGING_PORT
         self.loghost_name  = 'localhost'
-        self.logdomain     = 'net.crawler'
+        self.logdomain     = 'crawl'
         self.usage_string  = 'Usage: crawler.py3 [inifile] -h -v -p <numeric> -l <hostname> -u <url> -r\r\n\r\n'
         self.usage_string+=' [inifile]  if inifile is set it is read before commandline switches\r\n'
         self.usage_string+='    -h          print usage string\r\n'
@@ -221,12 +199,15 @@ class Application:
         self.inifile_name = 'undefined'
         self.remote_logger_enabled = False
         self.log_verbose  = False
-        self.gather_parameter()
-        self.log          = self.get_logger()
         self.logfile      = None
-        self.log_configuration()
-        signal.signal(signal.SIGINT, Application.signal_int_handler)        
+        self.gather_parameter()
 
+        # setup logger
+        self.log          = self.get_logger()
+
+        self.log_configuration()
+
+        signal.signal(signal.SIGINT, Application.signal_int_handler)        
 
     def log_configuration(self):
         self.log.info("%28s = %s", "Application.name", Application.name)
@@ -241,6 +222,7 @@ class Application:
 
     def get_logger(self):
         log = logging.getLogger(self.logdomain)
+        root_logger =  logging.getLogger('')
         formatstring='%(asctime)s %(levelname)-15s %(name)s # %(message)s'
         formatter = logging.Formatter(fmt=formatstring, datefmt='%d.%m.%y %I:%M:%S')
         handler = None
@@ -251,12 +233,14 @@ class Application:
         else:
             handler = logging.FileHandler(self.logfile)
         handler.setFormatter(formatter)
-        log.addHandler(handler)
+        # attach handler to root logger
+        root_logger.addHandler(handler)
         level = logging.INFO
         if self.log_verbose:
             level = logging.DEBUG
+        root_logger.setLevel(level)
         log.setLevel(level)
-        log.propagate=0
+        log.propagate=1
         return log
         
     def gather_parameter(self):
@@ -358,7 +342,7 @@ class Application:
                     self.log.info("Visiting {}".format(next_url))
                     extract = UrlExtract(hash_val, next_url)
                     visited_urls[hash_val] = extract
-                    lParser = CrawlerHtmlParser(self)
+                    lParser = CrawlerHtmlParser()
                     urls = lParser.getLinks(next_url)
                     lParser.close()
                     extract.copy_from_parser(lParser)
