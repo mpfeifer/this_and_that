@@ -1,0 +1,21 @@
+Certificate
+Data
+Version
+Serial Number
+Signature Algorithm
+Issuer
+Validity
+Not Before
+Not After 
+Subject
+Subject Public Key Info
+Public Key Algorithm
+Public-Key
+Modulus
+Exponent
+X509v3 extensions
+X509v3 Subject Key Identifier
+X509v3 Authority Key Identifier
+X509v3 Basic Constraints
+X509v3 Key Usage
+Signature Algorithm
