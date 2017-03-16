@@ -1,0 +1,54 @@
+.logline-header {
+
+    margin: 3 0 3 3;
+    padding: 0 0 0 0;
+    background-color: IndianRed;
+
+}
+
+.logline-light {
+
+    margin: 3 0 3 3;
+    padding: 0 0 0 0;
+    background-color: Gainsboro;
+
+}
+
+.logline-dark {
+
+    margin: 3 0 3 3;
+    padding: 0 0 0 0;
+    background-color: GhostWhite;
+
+}
+
+.logline-highlighted {
+
+    background-color: lightcoral;
+    
+}
+
+.date {
+    display:inline-block;
+    width: 100px;
+}
+
+.time {
+    display:inline-block;
+    width: 100px;
+}
+
+.evnt {
+    display:inline-block;
+    width: 160px;
+    margin-right: 10px;
+    color: red;
+}
+
+.text {
+}
+
+.text-amendment {
+    width:100%;
+    text-align:right;
+}
